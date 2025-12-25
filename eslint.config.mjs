@@ -25,7 +25,6 @@ const eslintConfig = defineConfig([
     rules: {
       ...prettierConfig.rules, // Prettier와 충돌하는 ESLint 규칙 끄기
       "prettier/prettier": [
-        "error",
         { singleQuote: false }, // ← Prettier 옵션 강제 적용
       ],
       "no-console": "warn", // 상용 코드에 console.log 남기지 않기
