@@ -8,5 +8,10 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "prettier.singleQuote": false, // ← double quote 강제
   "emmet.triggerExpansionOnTab": true,
-  "editor.snippetSuggestions": "inline"
+  "editor.snippetSuggestions": "inline",
+  // --- 여기서부터 추가 ---
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"]
 }
