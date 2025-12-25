@@ -1,0 +1,22 @@
+services:
+  frontend:
+    # Dockerfile의 'deps' 단계까지만 사용하여 node_modules를 확보합니다.
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    container_name: namanmoo_fe
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules # 컨테이너 내의 node_modules 보존
+      - /app/.next # 빌드 캐시 보존
+    # 0.0.0.0으로 개방해야 브라우저에서 접속 가능합니다.
+    command: npx next dev -p 3000 -H 0.0.0.0
+    env_file:
+      - .env.local
+    environment:
+      - WATCHPACK_POLLING=true # 파일 변경 감지 성능 향상
+      - NEXT_PUBLIC_LIVEKIT_URL=${NEXT_PUBLIC_LIVEKIT_URL}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}

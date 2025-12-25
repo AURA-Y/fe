@@ -1,0 +1,12 @@
+{
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": true
+  },
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "prettier.singleQuote": false, // ← double quote 강제
+  "emmet.triggerExpansionOnTab": true,
+  "editor.snippetSuggestions": "inline"
+}
