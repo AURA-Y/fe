@@ -1,28 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { LiveKitRoom, VideoConference } from "@livekit/components-react";
 import { fetchToken } from "@/lib/api";
 import "@livekit/components-styles";
 import "./styles.css";
 
 export default function RoomPage() {
+  const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const roomId = params.roomId as string;
   const [token, setToken] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
   const [isReady, setIsReady] = useState(false);
+  const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
-    // 사용자 이름 생성 (랜덤)
-    const randomName = `User-${Math.floor(Math.random() * 1000)}`;
-    setUserName(randomName);
+    // URL 쿼리 파라미터에서 사용자 이름 가져오기
+    const userNameFromQuery = searchParams.get("userName");
+    const finalUserName = userNameFromQuery || `User-${Math.floor(Math.random() * 1000)}`;
+    setUserName(finalUserName);
+
+    // URL에서 쿼리 파라미터 제거 (깔끔한 URL)
+    if (userNameFromQuery) {
+      router.replace(`/room/${roomId}`, { scroll: false });
+    }
 
     // Backend에서 Token 받아오기
     async function getToken() {
       try {
-        const token = await fetchToken(roomId, randomName);
+        const token = await fetchToken(roomId, finalUserName);
         console.log("Token received: Success");
         setToken(token);
         setIsReady(true);
@@ -33,7 +41,7 @@ export default function RoomPage() {
     }
 
     getToken();
-  }, [roomId]);
+  }, [roomId, searchParams, router]);
 
   if (!isReady || !token) {
     return (
@@ -63,7 +71,7 @@ export default function RoomPage() {
         }}
         onDisconnected={() => {
           if (confirm("정말 나가시겠습니까?")) {
-            window.location.href = "about:blank";
+            router.push("/");
           }
         }}
       >

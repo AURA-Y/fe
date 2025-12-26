@@ -1,22 +1,17 @@
-export async function fetchToken(roomName: string, userName: string): Promise<string> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-  console.log("API URL:", apiUrl);
+import { api } from "./axios";
 
-  const response = await fetch(`${apiUrl}/api/token`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      roomName,
-      userName,
-    }),
+export async function fetchToken(roomName: string, userName: string): Promise<string> {
+  const { data } = await api.post("/api/token", {
+    roomName,
+    userName,
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const data = await response.json();
+  console.log("Token received:", data.token ? "Success" : "Failed");
   return data.token;
+}
+
+export async function createRoom(userName: string) {
+  const { data } = await api.post("/api/room/create", { userName });
+
+  return data;
 }
