@@ -1,31 +1,55 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import LobbyForm from "@/components/lobby/LobbyForm";
+import { Button } from "@/components/ui/button";
+import { Plus, LogIn, Video } from "lucide-react";
 import { useLiveKitToken } from "@/hooks/use-livekit-token";
-import LiveKitView from "@/components/room/LiveKitView";
+import LobbyModal from "@/components/lobby/LobbyModal";
+import { useRouter } from "next/navigation";
+import { extractRoomId } from "@/lib/utils";
 
 export default function HomePage() {
-  // LiveKitToken 커스텀 훅에서 꺼내기
-  const { token, isLoading, isError, requestToken } = useLiveKitToken();
+  // token 갖고오기
 
-  if (token)
-    return (
-      <div>
-        <LiveKitView token={token} onDisconnected={() => window.location.reload()} />
-      </div>
-    );
+  // 모달 제어 상태
+  const [modalType, setModalType] = useState<"create" | "join" | null>(null);
+
+  const { mutate, isLoading } = useLiveKitToken();
 
   return (
-    <main className="bg-muted/50 flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <main className="bg-muted/50 relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+      {/* 배경 장식 (생략) */}
+
+      <Card className="z-10 w-full max-w-md border-white/20 bg-white/80 shadow-xl backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-center text-2xl">LiveKit 입장</CardTitle>
+          <CardTitle className="flex justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-center text-3xl font-bold text-transparent">
+            <Video className="h-8 w-8 text-blue-600" /> LiveKit Aura
+          </CardTitle>
+          <p className="mt-2 text-center text-sm text-gray-500">실시간 화상 회의를 시작해보세요</p>
         </CardHeader>
-        <CardContent>
-          <LobbyForm onSubmit={requestToken} isLoading={isLoading} />
+        <CardContent className="flex flex-col gap-4 p-6">
+          <Button
+            size="lg"
+            className="bg-gradient-to-r from-blue-500 to-blue-600"
+            onClick={() => setModalType("create")}
+          >
+            <Plus className="mr-2 h-5 w-5" /> 방 생성
+          </Button>
+          <Button variant="outline" size="lg" onClick={() => setModalType("join")}>
+            <LogIn className="mr-2 h-5 w-5" /> 방 입장
+          </Button>
         </CardContent>
       </Card>
+
+      <LobbyModal
+        key={modalType} // ⭐️ 모달 타입이 바뀔 때마다 내부 폼을 완전히 초기화함
+        isOpen={!!modalType}
+        type={modalType || "create"}
+        onClose={() => setModalType(null)}
+        onSubmit={mutate} // 훅에서 제공하는 실행 함수 전달
+        isLoading={isLoading}
+      />
     </main>
   );
 }

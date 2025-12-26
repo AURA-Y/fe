@@ -9,9 +9,10 @@ import { Button } from "../ui/button";
 interface LobbyFormProps {
   onSubmit: (data: LobbyFormValues) => void;
   isLoading: boolean;
+  buttonText: string;
 }
 
-const LobbyForm = ({ onSubmit, isLoading }: LobbyFormProps) => {
+const LobbyForm = ({ onSubmit, isLoading, buttonText }: LobbyFormProps) => {
   const {
     register,
     handleSubmit,
@@ -33,7 +34,7 @@ const LobbyForm = ({ onSubmit, isLoading }: LobbyFormProps) => {
         {errors.user && <p className="text-destructive text-xs">{errors.user.message}</p>}
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "토큰 발급 중..." : "입장하기"}
+        {isLoading ? "토큰 발급 중..." : `${buttonText}`}
       </Button>
     </form>
   );
