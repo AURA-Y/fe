@@ -8,4 +8,5 @@ const fetchLiveKitToken = async (room: string, user: string) => {
 
   return data.token;
 };
+
 export { fetchLiveKitToken };

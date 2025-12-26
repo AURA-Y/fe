@@ -1,22 +1,29 @@
 "use client";
 
+import { useEffect } from "react";
 import LiveKitView from "@/components/room/LiveKitView";
-import { useLiveKitToken } from "@/hooks/use-livekit-token";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function page() {
-  const { roomId } = useParams();
+export default function RoomPage() {
+  //http://localhost:3000/room/my-meeting-room?token=eyJhbGci... 로 접속시,
+  const searchParams = useSearchParams();
   const router = useRouter();
 
-  // LiveKitToken 커스텀 훅에서 꺼내기
-  const { token, isLoading, isError, requestToken } = useLiveKitToken();
+  //? 뒤 : token=eyJhbGci... -> 'eyJhbGci...'만 추출
+  const token = searchParams.get("token");
 
-  if (token)
-    return (
-      <div>
-        <LiveKitView token={token} onDisconnected={() => router.push("/")} />
-      </div>
-    );
+  useEffect(() => {
+    // token이 없을 시, -> 메인페이지로 돌아감
+    if (!token) {
+      router.push("/");
+    }
+  }, [token, router]);
 
-  return <div>page</div>;
+  if (!token) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black">
+      <LiveKitView token={token} onDisconnected={() => router.push("/")} />
+    </div>
+  );
 }

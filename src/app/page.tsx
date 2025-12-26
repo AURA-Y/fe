@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, LogIn, Video } from "lucide-react";
-import { useLiveKitToken } from "@/hooks/use-livekit-token";
+import { useJoinRoom, useCreateRoom } from "@/hooks/use-livekit-token";
 import LobbyModal from "@/components/lobby/LobbyModal";
-import { useRouter } from "next/navigation";
-import { extractRoomId } from "@/lib/utils";
+import { CreateRoomFormValues, JoinRoomFormValues } from "@/lib/schema/auth.schema";
 
 export default function HomePage() {
   // token 갖고오기
@@ -15,7 +14,18 @@ export default function HomePage() {
   // 모달 제어 상태
   const [modalType, setModalType] = useState<"create" | "join" | null>(null);
 
-  const { mutate, isLoading } = useLiveKitToken();
+  const { mutate: joinMutate, isPending: isJoining } = useJoinRoom();
+  const { mutate: createMutate, isPending: isCreating } = useCreateRoom();
+
+  const handleSubmit = (data: JoinRoomFormValues | CreateRoomFormValues) => {
+    if ("room" in data) {
+      joinMutate(data);
+    } else {
+      createMutate(data);
+    }
+  };
+
+  const isLoading = isJoining || isCreating;
 
   return (
     <main className="bg-muted/50 relative flex min-h-screen items-center justify-center overflow-hidden p-4">
@@ -47,7 +57,7 @@ export default function HomePage() {
         isOpen={!!modalType}
         type={modalType || "create"}
         onClose={() => setModalType(null)}
-        onSubmit={mutate} // 훅에서 제공하는 실행 함수 전달
+        onSubmit={handleSubmit} // 훅에서 제공하는 실행 함수 전달
         isLoading={isLoading}
       />
     </main>

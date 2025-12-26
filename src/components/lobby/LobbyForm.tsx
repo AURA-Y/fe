@@ -2,12 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { LobbyFormValues, lobbySchema } from "@/lib/schema/auth.schema";
+import { JoinRoomFormValues, joinRoomSchema } from "@/lib/schema/auth.schema";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 
 interface LobbyFormProps {
-  onSubmit: (data: LobbyFormValues) => void;
+  onSubmit: (data: JoinRoomFormValues) => void;
   isLoading: boolean;
   buttonText: string;
 }
@@ -17,8 +17,8 @@ const LobbyForm = ({ onSubmit, isLoading, buttonText }: LobbyFormProps) => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LobbyFormValues>({
-    resolver: zodResolver(lobbySchema),
+  } = useForm<JoinRoomFormValues>({
+    resolver: zodResolver(joinRoomSchema),
   });
 
   return (

@@ -5,7 +5,12 @@ import { LogIn, Plus, X } from "lucide-react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useForm } from "react-hook-form";
-import { LobbyFormValues, lobbySchema } from "@/lib/schema/auth.schema";
+import {
+  JoinRoomFormValues,
+  CreateRoomFormValues,
+  joinRoomSchema,
+  createRoomSchema,
+} from "@/lib/schema/auth.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { extractRoomId } from "@/lib/utils";
 
@@ -14,7 +19,7 @@ interface LobbyModalProps {
   isOpen: boolean;
   type: "create" | "join";
   onClose: () => void;
-  onSubmit: (data: { room: string; user: string }) => void; // 부모의 mutate 함수를 받음
+  onSubmit: (data: JoinRoomFormValues | CreateRoomFormValues) => void;
   isLoading: boolean;
 }
 
@@ -22,7 +27,7 @@ export default function LobbyModal({
   isOpen,
   type,
   onClose,
-  onSubmit, // 여기도 수정
+  onSubmit,
   isLoading,
 }: LobbyModalProps) {
   const isCreate = type === "create";
@@ -31,13 +36,22 @@ export default function LobbyModal({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LobbyFormValues>({
-    resolver: zodResolver(lobbySchema),
+    reset,
+  } = useForm<JoinRoomFormValues | CreateRoomFormValues>({
+    resolver: zodResolver(isCreate ? createRoomSchema : joinRoomSchema),
   });
 
-  const onFormSubmit = (data: LobbyFormValues) => {
-    const cleanRoomId = extractRoomId(data.room);
-    onSubmit({ room: cleanRoomId, user: data.user });
+  // Re-initialize form when type changes or opens
+  // This is handled by "key={modalType}" in parent usually, or we can use useEffect here.
+
+  const onFormSubmit = (data: JoinRoomFormValues | CreateRoomFormValues) => {
+    if (isCreate) {
+      onSubmit(data as CreateRoomFormValues);
+    } else {
+      const joinData = data as JoinRoomFormValues;
+      const cleanRoomId = extractRoomId(joinData.room);
+      onSubmit({ ...joinData, room: cleanRoomId });
+    }
   };
 
   return (
@@ -76,16 +90,16 @@ export default function LobbyModal({
               </div>
 
               <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    {isCreate ? "방 이름" : "방 링크 또는 ID"}
-                  </label>
-                  <Input
-                    {...register("room")}
-                    placeholder={isCreate ? "예: 주간 회의" : "링크를 붙여넣으세요"}
-                  />
-                  {errors.room && <p className="text-destructive text-xs">{errors.room.message}</p>}
-                </div>
+                {!isCreate && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">방 링크 또는 ID</label>
+                    <Input {...register("room")} placeholder="링크를 붙여넣으세요" />
+                    {(errors as any).room && (
+                      <p className="text-destructive text-xs">{(errors as any).room.message}</p>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">닉네임</label>
                   <Input {...register("user")} placeholder="사용하실 이름" />
@@ -96,7 +110,7 @@ export default function LobbyModal({
                   disabled={isLoading}
                   className={`w-full ${isCreate ? "bg-blue-600" : "bg-green-600"}`}
                 >
-                  {isLoading ? "입장 중..." : isCreate ? "생성하고 입장" : "입장하기"}
+                  {isLoading ? "처리 중..." : isCreate ? "방 생성하기" : "입장하기"}
                 </Button>
               </form>
             </motion.div>
