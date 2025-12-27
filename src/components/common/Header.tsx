@@ -14,10 +14,6 @@ const Header = () => {
 
       {/* Right Side: Actions & Buttons */}
       <div className="flex items-center gap-2 md:gap-6">
-        <button className="text-slate-600 hover:text-blue-600">
-          <Search className="h-5 w-5" />
-        </button>
-
         <div className="hidden items-center gap-6 xl:flex">
           <Link
             href={"/attend"}

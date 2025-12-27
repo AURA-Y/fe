@@ -1,3 +1,4 @@
+import { Meeting } from "@/mock/mockData";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import axios from "axios";
@@ -26,3 +27,52 @@ export function extractRoomId(input: string): string {
     return trimmedInput;
   }
 }
+
+export const getMeetingSubIds = (meeting: Meeting) => {
+  const ids = [`${meeting.id}-summary`];
+  meeting.files.forEach((f) => ids.push(`${meeting.id}-file-${f.id}`));
+  return ids;
+};
+
+export const getMeetingState = (meeting: Meeting, selectedIds: Set<string>) => {
+  const subIds = getMeetingSubIds(meeting);
+  const selectedSubIds = subIds.filter((id) => selectedIds.has(id));
+
+  const isAll = selectedSubIds.length === subIds.length && subIds.length > 0;
+  const isNone = selectedSubIds.length === 0;
+  const isPartial = !isAll && !isNone;
+
+  return { isAll, isNone, isPartial };
+};
+
+export const toggleMeetingSelection = (meeting: Meeting, selectedIds: Set<string>): Set<string> => {
+  const { isAll } = getMeetingState(meeting, selectedIds);
+  const subIds = getMeetingSubIds(meeting);
+
+  const newSet = new Set(selectedIds);
+  if (!isAll) {
+    // Select all
+    subIds.forEach((id) => newSet.add(id));
+  } else {
+    // Deselect all
+    subIds.forEach((id) => newSet.delete(id));
+  }
+  return newSet;
+};
+
+export const toggleSingleSelection = (id: string, selectedIds: Set<string>): Set<string> => {
+  const newSet = new Set(selectedIds);
+  if (newSet.has(id)) newSet.delete(id);
+  else newSet.add(id);
+  return newSet;
+};
+
+export const calculateTotalSelectedCount = (
+  meetings: Meeting[],
+  selectedIds: Set<string>
+): number => {
+  return meetings.reduce((acc, m) => {
+    const { isNone } = getMeetingState(m, selectedIds);
+    return acc + (isNone ? 0 : 1);
+  }, 0);
+};
