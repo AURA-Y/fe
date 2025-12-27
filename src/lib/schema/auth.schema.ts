@@ -16,9 +16,29 @@ const createRoomSchema = z.object({
   user: commonUserSchema,
 });
 
+// 로그인 스키마
+const loginSchema = z.object({
+  email: z.string().email("올바른 이메일 형식이 아닙니다"),
+  password: z.string().min(6, "비밀번호는 최소 6자 이상이어야 합니다"),
+});
+// 회원가입 스키마
+const signupSchema = z
+  .object({
+    email: z.string().email("올바른 이메일 형식이 아닙니다"),
+    password: z.string().min(6, "비밀번호는 최소 6자 이상이어야 합니다"),
+    confirmPassword: z.string(),
+    nickname: z.string().min(2, "닉네임은 최소 2자 이상이어야 합니다"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "비밀번호가 일치하지 않습니다",
+    path: ["confirmPassword"],
+  });
+// TypeScript 타입 추출
+type LoginFormValues = z.infer<typeof loginSchema>;
+type SignupFormValues = z.infer<typeof signupSchema>;
 type JoinRoomFormValues = z.infer<typeof joinRoomSchema>;
 type CreateRoomFormValues = z.infer<typeof createRoomSchema>;
 
-export { joinRoomSchema, createRoomSchema };
+export { loginSchema, signupSchema, joinRoomSchema, createRoomSchema };
 
-export type { JoinRoomFormValues, CreateRoomFormValues };
+export type { LoginFormValues, SignupFormValues, JoinRoomFormValues, CreateRoomFormValues };
