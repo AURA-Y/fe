@@ -33,7 +33,7 @@ export default function HomePage() {
 
       <Card className="z-10 w-full max-w-md border-white/20 bg-white/80 shadow-xl backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="flex justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-center text-3xl font-bold text-transparent">
+          <CardTitle className="flex justify-center gap-2 bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-center text-3xl font-bold text-transparent">
             <Video className="h-8 w-8 text-blue-600" /> LiveKit Aura
           </CardTitle>
           <p className="mt-2 text-center text-sm text-gray-500">실시간 화상 회의를 시작해보세요</p>
@@ -41,7 +41,7 @@ export default function HomePage() {
         <CardContent className="flex flex-col gap-4 p-6">
           <Button
             size="lg"
-            className="bg-gradient-to-r from-blue-500 to-blue-600"
+            className="bg-linear-to-r from-blue-500 to-blue-600"
             onClick={() => setModalType("create")}
           >
             <Plus className="mr-2 h-5 w-5" /> 방 생성
