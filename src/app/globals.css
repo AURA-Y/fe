@@ -41,6 +41,136 @@
   --sidebar-border: oklch(0.922 0 0);
 }
 
+/* Scrollbar 스타일: 얇고 라운드된 파란 톤 */
+.custom-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c9d6e5 transparent;
+}
+
+.custom-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #c9d6e5;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #9fb5d3;
+  background-clip: content-box;
+}
+
+/* Scrollbar: 기본 숨김 + 호버 시만 보이는 고스트 스타일 */
+.ghost-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.ghost-scroll:hover {
+  scrollbar-color: #d4deeb transparent;
+}
+
+.ghost-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ghost-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ghost-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+}
+
+.ghost-scroll:hover::-webkit-scrollbar-thumb {
+  background: #d4deeb;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* 상위 영역: 기본은 안 보이고, 호버 시 얇게 보이는 스크롤 */
+.ghost-scroll-zero {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.ghost-scroll-zero:hover {
+  scrollbar-color: #cfd9e6 transparent;
+}
+
+.ghost-scroll-zero::-webkit-scrollbar {
+  width: 0;
+}
+
+.ghost-scroll-zero:hover::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ghost-scroll-zero::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ghost-scroll-zero::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+}
+
+.ghost-scroll-zero:hover::-webkit-scrollbar-thumb {
+  background: #cfd9e6;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* 완전 숨김 스크롤 (동작은 유지, 바는 표시 안 함) */
+.scroll-invisible {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scroll-invisible::-webkit-scrollbar {
+  display: none;
+}
+
+/* 페이지 전체 스크롤도 얇게 */
+html,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 6px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.28);
+  background-clip: content-box;
+}
+
+
 /* 4. Tailwind 테마 확장 (v4 방식) */
 /* 상단에서 정의한 CSS 변수들을 Tailwind의 유틸리티 클래스(bg-primary 등)로 연결합니다. */
 @theme inline {
