@@ -1,65 +1,62 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import AiVoiceOption from "./AiVoiceOption";
 import MeetingBasicInfo from "./MeetingBasicInfo";
 import ReferenceMaterialUpload from "./ReferenceMaterialUpload";
-import { useCreateMeeting } from "@/hooks/use-create-meeting";
-import { createMeetingSchema } from "@/lib/schema/room/roomAIAgentSetting.schema";
+import { useCreateRoom } from "@/hooks/use-livekit-token";
+import { CreateRoomFormValues, createRoomSchema } from "@/lib/schema/room/roomCreate.schema";
+import { useState } from "react";
 
 export default function CreateMeetingSecondStepForm() {
   const router = useRouter();
+  // 1. 방 생성 커스텀 훅 가져오기
+  const { mutate: createRoomMutate, isPending: isLoading } = useCreateRoom();
 
+  // 2. formState로 useState 한방에 처리
   const [formState, setFormState] = useState({
-    voice: "female" as "male" | "female",
-    topic: "",
-    goal: "",
+    // API 전송용 & Zod 검증용
+    user: "meeting_organizer",
+    roomTitle: "화상 회의방 제목을 입력하세요.",
+    description: "오늘은 무슨 회의를 할 예정인가요?",
+    maxParticipants: 10,
+
+    // UI 관리용 (현재 API에는 없지만 화면엔 필요한 것들)
+    voice: "male" as "male" | "female",
+    files: [] as File[],
   });
 
-  const [files, setFiles] = useState<File[]>([]);
-
-  const { mutate: createMeeting, isPending } = useCreateMeeting();
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFiles((prev) => [...prev, ...Array.from(e.target.files as FileList)]);
-    }
+  // 상태 변경 헬퍼 함수 : 이건 뭐지?
+  const updateField = (field: string, value: any) => {
+    setFormState((prev) => ({ ...prev, [field]: value }));
   };
 
-  const removeFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-  };
+  // 3. useForm 으로 zod 등록
+  // const form = useForm<CreateRoomFormValues>({
+  //   resolver: zodResolver(createRoomSchema),
+  //   defaultValues: {
+  //     user: "meeting_organizer", // 나중에 현재 로그인된 유저의 이름 적용
+  //     roomTitle: "화상 회의방 제목을 입력하세요.",
+  //     description: "오늘은 무슨 회의를 할 예정인가요?",
+  //     maxParticipants: 10,
+  //   },
+  // });
 
+  // 4. 제출 핸들러
   const handleSubmit = () => {
-    // 1. Zod Validation
-    const validationResult = createMeetingSchema.safeParse(formState);
+    // formState에서 Zod 검증에 필요한 필드만 뽑아내고, 검사 , 결과
+    const validateData: CreateRoomFormValues = {
+      user: formState.user,
+      roomTitle: formState.roomTitle,
+      description: formState.description,
+      maxParticipants: formState.maxParticipants,
+    };
 
-    if (!validationResult.success) {
-      // Show first error message
-      const firstError = (validationResult.error as any).errors[0]?.message;
-      toast.error(firstError || "입력 값을 확인해주세요.");
-      return;
-    }
+    const result = createRoomSchema.safeParse(validateData);
 
-    // 2. Execute Mutation
-    createMeeting(
-      { data: validationResult.data, files },
-      {
-        onSuccess: () => {
-          toast.success("회의가 성공적으로 생성되었습니다.");
-          // router.push("/create/complete"); // Navigate to next step or complete page
-          router.push("/create");
-        },
-        onError: (error) => {
-          console.error(error);
-          toast.error("회의 생성 중 오류가 발생했습니다.");
-        },
-      }
-    );
+    createRoomMutate(validateData);
   };
 
   return (
@@ -74,20 +71,32 @@ export default function CreateMeetingSecondStepForm() {
         {/* 1. 음성 설정 */}
         <AiVoiceOption
           selectedVoice={formState.voice}
-          onVoiceChange={(voice) => setFormState({ ...formState, voice })}
+          onVoiceChange={(voice) => updateField("voice", voice)}
         />
 
         {/* 2. 새 회의 주제 , 회의 목표 */}
         <MeetingBasicInfo
-          topic={formState.topic}
-          goal={formState.goal}
+          topic={formState.roomTitle}
+          goal={formState.description}
+          maxParticipants={formState.maxParticipants}
           onChange={(field, value) => setFormState({ ...formState, [field]: value })}
         />
+
         {/* 3. Reference Materials */}
         <ReferenceMaterialUpload
-          files={files}
-          onFileChange={handleFileChange}
-          onRemoveFile={removeFile}
+          files={formState.files}
+          onFileChange={(e) => {
+            if (e.target.files) {
+              const newFiles = Array.from(e.target.files);
+              updateField("files", [...formState.files, ...newFiles]);
+            }
+          }}
+          onRemoveFile={(index) => {
+            updateField(
+              "files",
+              formState.files.filter((_, i) => i !== index)
+            );
+          }}
         />
       </div>
 
@@ -96,9 +105,9 @@ export default function CreateMeetingSecondStepForm() {
         <Button
           className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white"
           onClick={handleSubmit}
-          disabled={isPending}
+          disabled={isLoading}
         >
-          {isPending ? "생성 중..." : "회의 생성하기"}
+          {isLoading ? "생성 중..." : "회의 생성하기"}
         </Button>
       </div>
     </Card>
