@@ -4,9 +4,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import AiVoiceOption from "./AiVoiceOption";
 import MeetingBasicInfo from "./MeetingBasicInfo";
 import ReferenceMaterialUpload from "./ReferenceMaterialUpload";
+import { useCreateMeeting } from "@/hooks/use-create-meeting";
+import { createMeetingSchema } from "@/lib/schema/createMeeting.schema";
 
 export default function CreateMeetingSecondStepForm() {
   const router = useRouter();
@@ -19,6 +22,8 @@ export default function CreateMeetingSecondStepForm() {
 
   const [files, setFiles] = useState<File[]>([]);
 
+  const { mutate: createMeeting, isPending } = useCreateMeeting();
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFiles((prev) => [...prev, ...Array.from(e.target.files as FileList)]);
@@ -27,6 +32,34 @@ export default function CreateMeetingSecondStepForm() {
 
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = () => {
+    // 1. Zod Validation
+    const validationResult = createMeetingSchema.safeParse(formState);
+
+    if (!validationResult.success) {
+      // Show first error message
+      const firstError = (validationResult.error as any).errors[0]?.message;
+      toast.error(firstError || "입력 값을 확인해주세요.");
+      return;
+    }
+
+    // 2. Execute Mutation
+    createMeeting(
+      { data: validationResult.data, files },
+      {
+        onSuccess: () => {
+          toast.success("회의가 성공적으로 생성되었습니다.");
+          // router.push("/create/complete"); // Navigate to next step or complete page
+          router.push("/create");
+        },
+        onError: (error) => {
+          console.error(error);
+          toast.error("회의 생성 중 오류가 발생했습니다.");
+        },
+      }
+    );
   };
 
   return (
@@ -62,14 +95,10 @@ export default function CreateMeetingSecondStepForm() {
       <div className="flex items-center justify-end border-t border-slate-100 p-4 dark:border-slate-800">
         <Button
           className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white"
-          onClick={() => {
-            // TODO: Submit logic here
-            alert("회의 생성 로직이 연결될 예정입니다.");
-            // router.push("/create/complete"); ??
-          }}
-          disabled={!formState.topic.trim() || !formState.goal.trim()}
+          onClick={handleSubmit}
+          disabled={isPending}
         >
-          회의 생성하기
+          {isPending ? "생성 중..." : "회의 생성하기"}
         </Button>
       </div>
     </Card>

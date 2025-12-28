@@ -30,7 +30,9 @@ const CreateMeetingFirstStepBoard = ({
         <div className="space-y-8">
           {Object.entries(groupedMeetings).map(([month, meetings]) => (
             <div key={month} className="space-y-4">
+              {/* 생성 시기 */}
               <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400">{month}</h3>
+              {/* 회의 리스트 */}
               <div className="space-y-2">
                 {meetings.map((meeting) => {
                   const { isAll, isPartial } = getMeetingState(meeting);

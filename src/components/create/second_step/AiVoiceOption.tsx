@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Check, Mic } from "lucide-react";
+import { Mic } from "lucide-react";
 
 interface AiVoiceOptionProps {
   selectedVoice: "male" | "female";
