@@ -1,65 +1,109 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, LogIn, Video } from "lucide-react";
-import { useJoinRoom, useCreateRoom } from "@/hooks/use-livekit-token";
-import LobbyModal from "@/components/lobby/LobbyModal";
-import { CreateRoomFormValues, JoinRoomFormValues } from "@/lib/schema/auth.schema";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useCreateRoom } from "@/hooks/use-livekit-token";
+import { CreateRoomFormValues, createRoomSchema } from "@/lib/schema/room/roomCreate.schema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
 
 export default function HomePage() {
-  // token 갖고오기
+  // 1. 커스텀 훅 호출
+  const { mutate: roomCreateMutation, isPending: isLoading } = useCreateRoom();
 
-  // 모달 제어 상태
-  const [modalType, setModalType] = useState<"create" | "join" | null>(null);
+  // 2. Form 정의 : zod + use Hook Form
+  const form = useForm<CreateRoomFormValues>({
+    resolver: zodResolver(createRoomSchema),
+    defaultValues: {
+      user: "meeting_organizer",
+      roomTitle: "화상 회의방 제목을 입력하세요.",
+      description: "오늘은 무슨 회의를 할 예정인가요?",
+      maxParticipants: 10,
+    },
+  });
 
-  const { mutate: joinMutate, isPending: isJoining } = useJoinRoom();
-  const { mutate: createMutate, isPending: isCreating } = useCreateRoom();
-
-  const handleSubmit = (data: JoinRoomFormValues | CreateRoomFormValues) => {
-    if ("room" in data) {
-      joinMutate(data);
-    } else {
-      createMutate(data);
-    }
+  // 3. 제출 핸들러
+  const onSubmit = (values: CreateRoomFormValues) => {
+    roomCreateMutation(values);
   };
 
-  const isLoading = isJoining || isCreating;
-
   return (
-    <main className="bg-muted/50 relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      {/* 배경 장식 (생략) */}
+    <main className="container mx-auto max-w-md py-10">
+      <h1 className="mb-6 text-center text-2xl font-bold">AI 화상회의 시작하기</h1>
 
-      <Card className="z-10 w-full max-w-md border-white/20 bg-white/80 shadow-xl backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="flex justify-center gap-2 bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-center text-3xl font-bold text-transparent">
-            <Video className="h-8 w-8 text-blue-600" /> LiveKit Aura
-          </CardTitle>
-          <p className="mt-2 text-center text-sm text-gray-500">실시간 화상 회의를 시작해보세요</p>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 p-6">
-          <Button
-            size="lg"
-            className="bg-linear-to-r from-blue-500 to-blue-600"
-            onClick={() => setModalType("create")}
-          >
-            <Plus className="mr-2 h-5 w-5" /> 방 생성
-          </Button>
-          <Button variant="outline" size="lg" onClick={() => setModalType("join")}>
-            <LogIn className="mr-2 h-5 w-5" /> 방 입장
-          </Button>
-        </CardContent>
-      </Card>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* 닉네임 (필수) */}
+          <FormField
+            control={form.control}
+            name="user"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>닉네임</FormLabel>
+                <FormControl>
+                  <Input placeholder="입장할 이름을 입력하세요" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-      <LobbyModal
-        key={modalType} // ⭐️ 모달 타입이 바뀔 때마다 내부 폼을 완전히 초기화함
-        isOpen={!!modalType}
-        type={modalType || "create"}
-        onClose={() => setModalType(null)}
-        onSubmit={handleSubmit} // 훅에서 제공하는 실행 함수 전달
-        isLoading={isLoading}
-      />
+          {/* 방 제목 (선택) */}
+          <FormField
+            control={form.control}
+            name="roomTitle"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>방 제목 (선택)</FormLabel>
+                <FormControl>
+                  <Input placeholder="회의 제목을 입력하세요" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* 최대 인원 (선택, 숫자) */}
+          <FormField
+            control={form.control}
+            name="maxParticipants"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>최대 참여 인원 ({field.value}명)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormDescription>2명에서 50명까지 설정 가능합니다.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />방 생성 중...
+              </>
+            ) : (
+              "방 만들기"
+            )}
+          </Button>
+        </form>
+      </Form>
     </main>
   );
 }

@@ -1,5 +1,5 @@
 import { api } from "@/lib/utils";
-import { CreateMeetingSchema } from "@/lib/schema/createMeeting.schema";
+import { CreateMeetingSchema } from "@/lib/schema/room/roomAIAgentSetting.schema";
 
 export const createMeeting = async (formData: CreateMeetingSchema, files: File[]) => {
   const data = new FormData();

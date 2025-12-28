@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { JoinRoomFormValues, joinRoomSchema } from "@/lib/schema/auth.schema";
+import { JoinRoomFormValues, joinRoomSchema } from "@/lib/schema/room/roomCreate.schema";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 

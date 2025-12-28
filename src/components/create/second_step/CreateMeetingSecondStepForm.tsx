@@ -9,7 +9,7 @@ import AiVoiceOption from "./AiVoiceOption";
 import MeetingBasicInfo from "./MeetingBasicInfo";
 import ReferenceMaterialUpload from "./ReferenceMaterialUpload";
 import { useCreateMeeting } from "@/hooks/use-create-meeting";
-import { createMeetingSchema } from "@/lib/schema/createMeeting.schema";
+import { createMeetingSchema } from "@/lib/schema/room/roomAIAgentSetting.schema";
 
 export default function CreateMeetingSecondStepForm() {
   const router = useRouter();

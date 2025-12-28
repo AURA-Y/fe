@@ -3,6 +3,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import axios from "axios";
 import { env } from "@/env.mjs";
+import { toast } from "sonner";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -75,4 +76,16 @@ export const calculateTotalSelectedCount = (
     const { isNone } = getMeetingState(m, selectedIds);
     return acc + (isNone ? 0 : 1);
   }, 0);
+};
+
+export const errorHandler = (error: unknown) => {
+  // 1. 400 , 500 에러 (서버에서 오류)
+  if (axios.isAxiosError(error)) {
+    const errorMessage = error.response?.data?.message || "방 생성이 실패했습니다.";
+    toast.error(errorMessage);
+    return;
+  }
+  //  2. 일반적인 에러 처리
+  console.error("Unknown Error : ", error);
+  toast.error("알 수 없는 오류가 발생했습니다.");
 };

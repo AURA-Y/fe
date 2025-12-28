@@ -1,16 +1,13 @@
 import { api } from "@/lib/utils";
+import { CreateRoomRequest, CreateRoomResponse } from "../types/room.type";
 
 // 기존 방 입장을 위한 LiveKit JWT 토큰을 발급 api
 
 // 방 생성 api
 
-const createRoom = async (user: string) => {
-  const { data } = await api.post<{ roomId: string; roomUrl: string; userName: string }>(
-    "/api/room/create",
-    {
-      userName: user,
-    }
-  );
+const createRoom = async (params: CreateRoomRequest): Promise<CreateRoomResponse> => {
+  const { data } = await api.post<CreateRoomResponse>("/api/room/create", params);
+
   return data;
 };
 
