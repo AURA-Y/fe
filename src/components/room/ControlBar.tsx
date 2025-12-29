@@ -11,7 +11,6 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
-import { useSmoothNumber } from "@/hooks/use-smooth-number";
 
 interface ControlBarProps {
   isVisible: boolean;
@@ -44,8 +43,6 @@ export function ControlBar({
   onAddParticipant,
   onRemoveParticipant,
 }: ControlBarProps) {
-  const smoothCount = useSmoothNumber(participantCount);
-
   return (
     <div
       className={`absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 transform items-center gap-3 rounded-2xl border border-white/10 bg-[#171821]/90 px-4 py-3 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] backdrop-blur-xl transition-all duration-300 ${
@@ -113,7 +110,7 @@ export function ControlBar({
       <div className="flex items-center gap-1 rounded-xl bg-white/5 px-2 py-1">
         <Users className="h-4 w-4 text-slate-400" />
         <span className="mx-1 min-w-[12px] text-center text-sm font-medium text-slate-300">
-          {smoothCount}
+          {participantCount}
         </span>
         <div className="flex flex-col gap-0.5">
           <Button
