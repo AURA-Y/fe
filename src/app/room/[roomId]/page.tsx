@@ -216,6 +216,7 @@ export default function RoomPage() {
           socket={socket}
           roomId={roomId}
           nickname={user?.nickname || "Guest"}
+          peers={peers}
         />
       </div>
 
