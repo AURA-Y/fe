@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import AiVoiceOption from "./AiVoiceOption";
 import MeetingBasicInfo from "./MeetingBasicInfo";
 import ReferenceMaterialUpload from "./ReferenceMaterialUpload";
-import { useCreateMediasoupRoom } from "@/hooks/use-mediasoup";
+import { useCreateMediasoupRoom } from "@/hooks/use-create-mediasoup-room";
 import { CreateRoomFormValues, createRoomSchema } from "@/lib/schema/room/roomCreate.schema";
 import { useState } from "react";
 

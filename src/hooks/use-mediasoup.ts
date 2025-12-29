@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import * as mediasoupClient from "mediasoup-client";
-import type { Consumer, Device, Transport, Producer } from "mediasoup-client/lib/types";
+import { types } from "mediasoup-client";
 
 // Helper for socket Promise emit
 const emitAsync = <T, P = Record<string, unknown>>(socket: Socket, event: string, payload?: P) =>
@@ -20,7 +20,7 @@ const emitAsync = <T, P = Record<string, unknown>>(socket: Socket, event: string
 export interface RemotePeer {
   id: string;
   displayName?: string;
-  consumers: Map<string, Consumer>;
+  consumers: Map<string, types.Consumer>;
   stream?: MediaStream; // Combined stream for easier handling
 }
 
@@ -38,11 +38,11 @@ export function useMediasoup({ roomId, nickname, signallingUrl, localStream }: U
   const [peers, setPeers] = useState<Map<string, RemotePeer>>(new Map());
 
   const socketRef = useRef<Socket | null>(null);
-  const deviceRef = useRef<Device | null>(null);
-  const sendTransportRef = useRef<Transport | null>(null);
-  const recvTransportRef = useRef<Transport | null>(null);
-  const producersRef = useRef<Map<string, Producer>>(new Map()); // kind -> Producer
-  const consumersRef = useRef<Map<string, Consumer>>(new Map()); // consumerId -> Consumer
+  const deviceRef = useRef<types.Device | null>(null);
+  const sendTransportRef = useRef<types.Transport | null>(null);
+  const recvTransportRef = useRef<types.Transport | null>(null);
+  const producersRef = useRef<Map<string, types.Producer>>(new Map()); // kind -> Producer
+  const consumersRef = useRef<Map<string, types.Consumer>>(new Map()); // consumerId -> Consumer
 
   // Track published tracks to handle stream changes
   const publishedTracksRef = useRef<Set<string>>(new Set());
@@ -149,7 +149,13 @@ export function useMediasoup({ roomId, nickname, signallingUrl, localStream }: U
         console.log("Creating send transport...");
         const sendData = await emitAsync<any>(socket, "create-webrtc-transport");
         console.log("Send transport data:", sendData);
-        const sendTransport = device.createSendTransport(sendData);
+        const sendTransport = device.createSendTransport({
+          ...sendData,
+          iceCandidates: sendData.iceCandidates.map((c: any) => ({
+            ...c,
+            address: c.ip,
+          })),
+        } as any);
         sendTransportRef.current = sendTransport;
 
         sendTransport.on("connect", ({ dtlsParameters }, callback, errback) => {
@@ -170,7 +176,13 @@ export function useMediasoup({ roomId, nickname, signallingUrl, localStream }: U
 
         // Create Recv Transport
         const recvData = await emitAsync<any>(socket, "create-webrtc-transport");
-        const recvTransport = device.createRecvTransport(recvData);
+        const recvTransport = device.createRecvTransport({
+          ...recvData,
+          iceCandidates: recvData.iceCandidates.map((c: any) => ({
+            ...c,
+            address: c.ip,
+          })),
+        } as any);
         recvTransportRef.current = recvTransport;
 
         recvTransport.on("connect", ({ dtlsParameters }, callback, errback) => {

@@ -74,5 +74,3 @@ export interface CreateTransportRequest {
   // BUT, usually we need to distinguish. I will add it as optional or app-level handling.
   direction?: "send" | "recv";
 }
-
-export interface CreateTransportResponse extends TransportOptions {}
