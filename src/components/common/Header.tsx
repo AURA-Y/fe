@@ -73,10 +73,10 @@ const Header = () => {
                 <Button
                   onClick={handleLogoutClick}
                   variant="outline"
-                  className="h-auto rounded-full border-blue-600 px-4 py-2 text-[15px] font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                  className="h-auto rounded-full border-blue-600 px-4 py-2 text-[15px] font-bold text-blue-600 hover:bg-blue-50 hover:text-blue-700"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  로그아웃
+                  Logout
                 </Button>
               </>
             ) : (
@@ -115,13 +115,13 @@ const Header = () => {
               <Button
                 variant="outline"
                 onClick={() => setIsLogoutModalOpen(false)}
-                className="flex items-center justify-center rounded-full px-6"
+                className="flex items-center justify-center rounded-full px-6 font-bold"
               >
                 취소
               </Button>
               <Button
                 onClick={handleLogoutConfirm}
-                className="flex items-center justify-center rounded-full bg-blue-600 px-6 hover:bg-blue-700"
+                className="flex items-center justify-center rounded-full bg-blue-600 px-6 font-bold hover:bg-blue-700"
               >
                 로그아웃
               </Button>
