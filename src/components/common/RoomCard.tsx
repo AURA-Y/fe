@@ -6,15 +6,20 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { useAttendRoom } from "@/hooks/use-livekit-token";
+import { useJoinRoom } from "@/hooks/use-livekit-token";
+import { useAuthStore } from "@/lib/store/auth.store";
 
 export default function RoomCard({ room }: { room: Room }) {
-  const { mutate: attendMutate, isPending } = useAttendRoom();
+  const { mutate: joinRoom, isPending } = useJoinRoom();
+  const user = useAuthStore((state) => state.user);
 
   const handleJoin = () => {
-    attendMutate({
-      roomId: room.roomId,
-      userName: "김철수",
+    // 로그인 안되어 있을 때 처리 로직 필요 (예: 모달 띄우기)
+    // 현재는 김철수 하드코딩 되어있던 부분을 실제 유저 닉네임 유무에 따라 처리하도록 변경 필요하지만
+    // 일단 로그인된 유저가 있다면 그 이름을 사용하도록 수정
+    joinRoom({
+      room: room.roomId,
+      user: user?.nickname || "Guest",
     });
   };
 
