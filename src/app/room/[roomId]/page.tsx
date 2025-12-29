@@ -8,6 +8,7 @@ import { ControlBar } from "@/components/room/ControlBar";
 import { ChatSidebar } from "@/components/room/ChatSidebar";
 import { ScreenSharePicker } from "@/components/room/ScreenSharePicker";
 import { useNoiseGate } from "@/hooks/use-noise-gate";
+import { useMediasoup } from "@/hooks/use-mediasoup";
 
 export default function RoomPage() {
   const params = useParams(); // { roomId: string }
@@ -23,14 +24,21 @@ export default function RoomPage() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isScreenPickerOpen, setIsScreenPickerOpen] = useState(false);
 
-  const [participants, setParticipants] = useState<number[]>([1]); // 1 = Local User
-
   // [NEW] Local Media Stream State
   const [sourceStream, setSourceStream] = useState<MediaStream | null>(null);
 
   // Apply Noise Gate to the source stream
-  // Threshold 0.05 targets mechanical keyboard clicks while letting voice through
   const { stream: gatedStream, isSpeaking } = useNoiseGate(sourceStream, 0.05);
+
+  // Mediasoup Hook
+  const { status, error, peers } = useMediasoup({
+    roomId,
+    nickname: user?.nickname || "Guest",
+    signallingUrl:
+      process.env.NEXT_PUBLIC_SIGNALLING_URL ||
+      "http://aura-server-alb-2065673986.ap-northeast-2.elb.amazonaws.com",
+    localStream: gatedStream,
+  });
 
   // Initialize Local Media (Camera/Mic)
   const initLocalMedia = async () => {
@@ -194,7 +202,8 @@ export default function RoomPage() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         <VideoGrid
-          participants={participants}
+          // participants={participants} // REMOVE
+          remotePeers={peers} // USE REAL DATA
           isMicOn={isMicOn}
           isScreenSharing={isScreenSharing}
           userNickname={user?.nickname}
@@ -211,7 +220,7 @@ export default function RoomPage() {
         isCamOn={isCamOn}
         isScreenSharing={isScreenSharing}
         isChatOpen={isChatOpen}
-        participantCount={participants.length}
+        participantCount={1 + peers.size}
         onMicToggle={() => {
           const newState = !isMicOn;
           setIsMicOn(newState);
