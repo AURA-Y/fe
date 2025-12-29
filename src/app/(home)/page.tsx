@@ -1,65 +1,36 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus, LogIn, Video } from "lucide-react";
-import { useJoinRoom, useCreateRoom } from "@/hooks/use-livekit-token";
-import LobbyModal from "@/components/lobby/LobbyModal";
-import { CreateRoomFormValues, JoinRoomFormValues } from "@/lib/schema/auth.schema";
+import RoomCard from "@/components/common/RoomCard";
+import { useAllReadRooms } from "@/hooks/use-read-rooms";
 
 export default function HomePage() {
-  // token 갖고오기
+  const { data: rooms, isLoading, isError } = useAllReadRooms();
 
-  // 모달 제어 상태
-  const [modalType, setModalType] = useState<"create" | "join" | null>(null);
-
-  const { mutate: joinMutate, isPending: isJoining } = useJoinRoom();
-  const { mutate: createMutate, isPending: isCreating } = useCreateRoom();
-
-  const handleSubmit = (data: JoinRoomFormValues | CreateRoomFormValues) => {
-    if ("room" in data) {
-      joinMutate(data);
-    } else {
-      createMutate(data);
-    }
-  };
-
-  const isLoading = isJoining || isCreating;
+  if (isLoading) return <div>방을 불러오는 중입니다.</div>;
+  if (isError) return <div>404</div>;
 
   return (
-    <main className="bg-muted/50 relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      {/* 배경 장식 (생략) */}
+    <div className="min-h-screen w-full bg-slate-50 p-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      {/* Header Section */}
+      <div className="mx-auto max-w-5xl space-y-8">
+        <p className="text-2xl font-bold">전체 회의방 ({rooms?.total})</p>
+        {/* 검색바 적용 */}
 
-      <Card className="z-10 w-full max-w-md border-white/20 bg-white/80 shadow-xl backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="flex justify-center gap-2 bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-center text-3xl font-bold text-transparent">
-            <Video className="h-8 w-8 text-blue-600" /> LiveKit Aura
-          </CardTitle>
-          <p className="mt-2 text-center text-sm text-gray-500">실시간 화상 회의를 시작해보세요</p>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 p-6">
-          <Button
-            size="lg"
-            className="bg-linear-to-r from-blue-500 to-blue-600"
-            onClick={() => setModalType("create")}
-          >
-            <Plus className="mr-2 h-5 w-5" /> 방 생성
-          </Button>
-          <Button variant="outline" size="lg" onClick={() => setModalType("join")}>
-            <LogIn className="mr-2 h-5 w-5" /> 방 입장
-          </Button>
-        </CardContent>
-      </Card>
-
-      <LobbyModal
-        key={modalType} // ⭐️ 모달 타입이 바뀔 때마다 내부 폼을 완전히 초기화함
-        isOpen={!!modalType}
-        type={modalType || "create"}
-        onClose={() => setModalType(null)}
-        onSubmit={handleSubmit} // 훅에서 제공하는 실행 함수 전달
-        isLoading={isLoading}
-      />
-    </main>
+        {/* 방 목록 그리드 */}
+        {rooms?.rooms && rooms.rooms.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {rooms.rooms.map((room) => (
+              <RoomCard key={room.roomId} room={room} />
+            ))}
+          </div>
+        ) : (
+          // 회의방이 없을 때,
+          <div className="flex h-[40vh] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-100 bg-slate-50/50">
+            <p className="text-slate-500">현재 개설된 회의방이 없습니다.</p>
+            <p className="text-sm text-slate-400">첫 번째 회의를 직접 만들어보세요!</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

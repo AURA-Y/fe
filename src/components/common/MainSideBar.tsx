@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 const MENU_ITEMS = [
   { label: "홈", href: "/", icon: Home },
-  { label: "회의 생성", href: "/create", icon: PlusCircle },
+  { label: "회의 생성", href: "/create/first", icon: PlusCircle },
   { label: "회의 참여", href: "/attend", icon: Video },
   { label: "지난 회의", href: "/board", icon: LayoutList },
 ];
@@ -31,7 +31,7 @@ const MainSideBar = () => {
       initial={{ width: 240 }}
       animate={{ width: isOpen ? 240 : 72 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="relative z-40 hidden h-[calc(100vh-72px)] border-r border-slate-100 bg-white shadow-sm lg:block"
+      className="relative z-40 hidden min-h-screen border-r border-slate-100 bg-white shadow-sm lg:block"
     >
       {/* Toggle Button */}
       <button

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Input } from "../input";
 import { Button } from "../button";
-import { LobbyFormValues, lobbySchema } from "@/lib/schema/auth.schema";
+import { LobbyFormValues, lobbySchema } from "@/lib/schema/room/roomCreate.schema";
 
 interface LobbyFormProps {
   onSubmit: (data: LobbyFormValues) => void;
