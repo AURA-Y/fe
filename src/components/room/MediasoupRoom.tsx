@@ -57,15 +57,20 @@ const MediasoupRoom = ({ roomId, nickname, signallingUrl, onLeave }: MediasoupRo
       deviceRef.current = null;
       socketRef.current?.disconnect();
     },
-    [],
+    []
   );
 
   useEffect(() => {
     const run = async () => {
       try {
         // 1) 소켓 연결 및 방 조인
-        const socketUrl = toWebSocketUrl(signallingUrl);
-        const socket = io(socketUrl, { transports: ["websocket"] });
+        const socket = io(signallingUrl, {
+          transports: ["websocket", "polling"], // polling fallback
+          upgrade: true,
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000,
+        });
         socketRef.current = socket;
 
         // 연결 완료까지 대기 (최대 10초)
@@ -99,7 +104,10 @@ const MediasoupRoom = ({ roomId, nickname, signallingUrl, onLeave }: MediasoupRo
           throw new Error("소켓 연결이 완료되지 않았습니다.");
         }
 
-        const rtpCaps = await emitAsync<{ rtpCapabilities: any }>(socket, "get-router-rtp-capabilities");
+        const rtpCaps = await emitAsync<{ rtpCapabilities: any }>(
+          socket,
+          "get-router-rtp-capabilities"
+        );
         if (!rtpCaps?.rtpCapabilities) {
           throw new Error("Router RTP Capabilities를 가져오지 못했습니다.");
         }
@@ -230,7 +238,9 @@ const MediasoupRoom = ({ roomId, nickname, signallingUrl, onLeave }: MediasoupRo
     <div className="flex h-screen flex-col bg-black text-white">
       <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
         <div>
-          <p className="text-sm text-slate-300">{status === "connected" ? "Connected" : "Connecting..."}</p>
+          <p className="text-sm text-slate-300">
+            {status === "connected" ? "Connected" : "Connecting..."}
+          </p>
           <p className="text-lg font-semibold">{roomId}</p>
         </div>
         <button
