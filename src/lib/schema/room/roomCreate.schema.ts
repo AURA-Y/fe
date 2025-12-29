@@ -14,7 +14,7 @@ const joinRoomSchema = z.object({
 
 // CreateRoomFormValues : 클라이언트가 방 생성 시, 검사 zod 부분
 const createRoomSchema = z.object({
-  user: commonUserSchema,
+  userName: commonUserSchema,
   roomTitle: z.string().trim().max(30, "방 제목을 30자 이내로 입력해주세요.").optional(),
   description: z.string().trim().max(100, "설명은 100자 이내로 입력하세요.").optional(),
   maxParticipants: z

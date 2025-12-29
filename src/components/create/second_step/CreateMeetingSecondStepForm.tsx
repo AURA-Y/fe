@@ -48,7 +48,7 @@ export default function CreateMeetingSecondStepForm() {
   const handleSubmit = () => {
     // formState에서 Zod 검증에 필요한 필드만 뽑아내고, 검사 , 결과
     const validateData: CreateRoomFormValues = {
-      user: formState.user,
+      userName: formState.user,
       roomTitle: formState.roomTitle,
       description: formState.description,
       maxParticipants: formState.maxParticipants,
