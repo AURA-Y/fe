@@ -13,9 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link2 } from "lucide-react";
 
-// Form 값에서 user는 자동 주입하므로 제외하고 room만 받음
-type AttendFormValues = Pick<JoinRoomFormValues, "room">;
-
 export default function AttendForm() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
@@ -26,7 +23,7 @@ export default function AttendForm() {
     handleSubmit,
     setValue,
     formState: { errors },
-  } = useForm<AttendFormValues>({
+  } = useForm<JoinRoomFormValues>({
     // resolver를 커스텀하게 설정하거나, 스키마를 부분적으로 적용해야 함
     // 여기서는 간단하게 room 필드만 검증하도록 처리
     resolver: async (values, context, options) => {
@@ -47,7 +44,7 @@ export default function AttendForm() {
     }
   }, [user, router]);
 
-  const onSubmit = (data: AttendFormValues) => {
+  const onSubmit = (data: JoinRoomFormValues) => {
     if (!user) return; // 한번 더 체크
 
     const roomId = extractRoomId(data.room);

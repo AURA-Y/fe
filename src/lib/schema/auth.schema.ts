@@ -38,7 +38,6 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type SignupFormValues = z.infer<typeof signupSchema>;
 type JoinRoomFormValues = z.infer<typeof joinRoomSchema>;
 type CreateRoomFormValues = z.infer<typeof createRoomSchema>;
-
 export { loginSchema, signupSchema, joinRoomSchema, createRoomSchema };
 
 export type { LoginFormValues, SignupFormValues, JoinRoomFormValues, CreateRoomFormValues };

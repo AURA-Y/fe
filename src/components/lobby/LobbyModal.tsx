@@ -10,7 +10,7 @@ import {
   CreateRoomFormValues,
   joinRoomSchema,
   createRoomSchema,
-} from "@/lib/schema/auth.schema";
+} from "@/lib/schema/room/roomCreate.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { extractRoomId } from "@/lib/utils";
 
