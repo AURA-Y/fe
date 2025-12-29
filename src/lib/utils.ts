@@ -89,3 +89,9 @@ export const errorHandler = (error: unknown) => {
   console.error("Unknown Error : ", error);
   toast.error("알 수 없는 오류가 발생했습니다.");
 };
+
+
+export const formatDate = (value: string) =>
+  new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(
+    new Date(value)
+  );
