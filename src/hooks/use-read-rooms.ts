@@ -4,10 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 
 export function useAllReadRooms() {
   return useQuery<GetAllRoomsResponse>({
-    queryKey: ["Rooms"],
+    queryKey: ["Rooms", "v2"],
     queryFn: getAllRooms,
     //인자가 없을때,
-    staleTime: 1000 * 60 * 3,
+    staleTime: 0,
   });
 }
 
