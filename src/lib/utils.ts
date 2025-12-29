@@ -26,3 +26,8 @@ export function extractRoomId(input: string): string {
     return trimmedInput;
   }
 }
+
+export const formatDate = (value: string) =>
+  new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(
+    new Date(value)
+  );
