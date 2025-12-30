@@ -7,7 +7,6 @@ export const env = createEnv({
    * 서버에서만 사용 가능하며 클라이언트(브라우저)에는 노출되지 않습니다.
    */
   server: {
-    NODE_ENV: z.enum(["development", "test", "production"]),
     // 예: LIVEKIT_API_SECRET: z.string().min(1),
   },
 
@@ -18,8 +17,11 @@ export const env = createEnv({
   client: {
     // API 서버
     NEXT_PUBLIC_API_URL: z.string().url(),
-    // LiveKit REST/WS 엔드포인트
-    NEXT_PUBLIC_LIVEKIT_API_URL: z.string().url(),
+    // LiveKit WebSocket 엔드포인트 (ws:// 또는 wss://)
+    NEXT_PUBLIC_LIVEKIT_API_URL: z.string().refine(
+      (url) => url.startsWith("ws://") || url.startsWith("wss://"),
+      { message: "LiveKit URL must start with ws:// or wss://" }
+    ),
   },
 
   /**
@@ -27,7 +29,6 @@ export const env = createEnv({
    * Next.js 13+ App Router의 정적 분석을 위해 process.env를 명시적으로 매핑해야 합니다.
    */
   runtimeEnv: {
-    NODE_ENV: process.env.NODE_ENV,
     NEXT_PUBLIC_LIVEKIT_API_URL: process.env.NEXT_PUBLIC_LIVEKIT_API_URL,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
