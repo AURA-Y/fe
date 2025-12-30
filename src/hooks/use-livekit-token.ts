@@ -39,10 +39,15 @@ export function useCreateRoom() {
   const router = useRouter();
 
   const mutation = useMutation({
-    mutationFn: async ({ user }: CreateRoomFormValues) => {
+    mutationFn: async (data: CreateRoomFormValues) => {
       // 1. 방 생성 API 호출 (토큰도 함께 반환됨)
-      const { roomId, token } = await createRoom({ userName: user });
-      return { roomId, user, token };
+      const { roomId, token } = await createRoom({
+        userName: data.user,
+        roomTitle: data.roomTitle,
+        description: data.description,
+        maxParticipants: data.maxParticipants,
+      });
+      return { roomId, user: data.user, token };
     },
     onSuccess: ({ roomId, user, token }) => {
       router.push(`/room/${roomId}?nickname=${user}&token=${token}`);
