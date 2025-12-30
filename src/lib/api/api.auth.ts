@@ -10,13 +10,13 @@ export interface AuthResponse {
 }
 
 export const login = (email: string, password: string) =>
-  api.post<AuthResponse>("/auth/login", {
+  api.post<AuthResponse>("/api/auth/login", {
     username: email,
     password,
   });
 
 export const register = (email: string, password: string, nickname: string) =>
-  api.post<AuthResponse>("/auth/register", {
+  api.post<AuthResponse>("/api/auth/register", {
     username: email,
     password,
     name: nickname,
