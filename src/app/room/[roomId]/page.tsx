@@ -9,7 +9,6 @@ import { ChatSidebar } from "@/components/room/ChatSidebar";
 import { ScreenSharePicker } from "@/components/room/ScreenSharePicker";
 import { useNoiseGate } from "@/hooks/use-noise-gate";
 import { useMediasoup } from "@/hooks/use-mediasoup";
-import { toast } from "sonner";
 
 export default function RoomPage() {
   const params = useParams(); // { roomId: string }
@@ -89,58 +88,7 @@ export default function RoomPage() {
     };
   }, []);
 
-  // Auto-refresh on connection issues
-  useEffect(() => {
-    if (status !== "connected") return;
-
-    // Check if this is a fresh load or a refresh
-    const REFRESH_KEY = `room-refresh-${roomId}`;
-    const lastRefresh = localStorage.getItem(REFRESH_KEY);
-    const now = Date.now();
-
     // If we refreshed less than 30 seconds ago, don't refresh again (prevent infinite loop)
-    if (lastRefresh && now - parseInt(lastRefresh) < 30000) {
-      console.log("[Auto-refresh] Recently refreshed, skipping auto-refresh check");
-      return;
-    }
-
-    // Wait 15 seconds after connection to check peer status
-    const checkTimer = setTimeout(() => {
-      console.log("[Auto-refresh] Checking connection health...", {
-        status,
-        peersSize: peers.size,
-        hasSocket: !!socket,
-      });
-
-      // If we're connected but have no peers visible, there might be an issue
-      // (This assumes there should be at least one other person, adjust logic if needed)
-      const shouldRefresh = status === "connected" && peers.size === 0;
-
-      if (shouldRefresh) {
-        console.log("[Auto-refresh] Connection issue detected, will refresh in 3 seconds...");
-
-        // Show toast notification
-        toast.warning("연결 문제 감지", {
-          description: "3초 후 자동으로 새로고침됩니다...",
-          duration: 3000,
-        });
-
-        // Wait 3 seconds, then refresh
-        setTimeout(() => {
-          console.log("[Auto-refresh] Refreshing page...");
-          localStorage.setItem(REFRESH_KEY, now.toString());
-          window.location.reload();
-        }, 3000);
-      } else {
-        console.log("[Auto-refresh] ✓ Connection looks healthy");
-      }
-    }, 15000); // Check after 15 seconds
-
-    return () => {
-      clearTimeout(checkTimer);
-    };
-  }, [status, peers.size, roomId, socket]);
-
   // Control visibility logic
   const [showControls, setShowControls] = useState(true);
   const [isAnyMenuOpen, setIsAnyMenuOpen] = useState(false);
