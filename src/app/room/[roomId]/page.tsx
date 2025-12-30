@@ -44,12 +44,21 @@ export default function RoomPage() {
   const initLocalMedia = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 },
+        },
         audio: {
           echoCancellation: { ideal: true },
           noiseSuppression: { ideal: true },
           autoGainControl: false, // Turn off AGC to prevent boosting background noise
         },
+      });
+      console.log("[initLocalMedia] Got media stream:", {
+        videoTracks: stream.getVideoTracks().length,
+        audioTracks: stream.getAudioTracks().length,
+        videoSettings: stream.getVideoTracks()[0]?.getSettings(),
       });
       setSourceStream(stream);
       setIsCamOn(true);
@@ -123,8 +132,17 @@ export default function RoomPage() {
     // For standard Web API, we just call getDisplayMedia().
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
+        video: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 },
+        },
         audio: false, // System audio optional
+      });
+
+      console.log("[handleStartShare] Got screen stream:", {
+        videoTracks: screenStream.getVideoTracks().length,
+        videoSettings: screenStream.getVideoTracks()[0]?.getSettings(),
       });
 
       setSourceStream(screenStream);
@@ -169,21 +187,38 @@ export default function RoomPage() {
       // Re-acquire with specific device
       try {
         const constraints: MediaStreamConstraints = {
-          audio: kind === "audioinput" ? { deviceId: { exact: deviceId } } : true,
-          video: kind === "videoinput" ? { deviceId: { exact: deviceId } } : true,
+          audio: kind === "audioinput"
+            ? {
+                deviceId: { exact: deviceId },
+                echoCancellation: { ideal: true },
+                noiseSuppression: { ideal: true },
+                autoGainControl: false,
+              }
+            : {
+                echoCancellation: { ideal: true },
+                noiseSuppression: { ideal: true },
+                autoGainControl: false,
+              },
+          video: kind === "videoinput"
+            ? {
+                deviceId: { exact: deviceId },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                frameRate: { ideal: 30 },
+              }
+            : {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                frameRate: { ideal: 30 },
+              },
         };
-        if (kind === "audioinput") {
-          // Preserve video track if we only change audio?
-          // Simplest is to just re-get huge stream for now or smart replace.
-          // Let's stick to simple re-init for prototype
-          constraints.video = true;
-          constraints.audio = { deviceId: { exact: deviceId } };
-        } else {
-          constraints.video = { deviceId: { exact: deviceId } };
-          constraints.audio = true;
-        }
 
         const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("[handleDeviceChange] Got new stream:", {
+          videoTracks: newStream.getVideoTracks().length,
+          audioTracks: newStream.getAudioTracks().length,
+          videoSettings: newStream.getVideoTracks()[0]?.getSettings(),
+        });
         setSourceStream(newStream);
       } catch (e) {
         console.error("Failed to switch device", e);
@@ -245,10 +280,8 @@ export default function RoomPage() {
         onScreenShareToggle={handleScreenShareClick}
         onChatToggle={() => setIsChatOpen(!isChatOpen)}
         onLeave={handleLeaveRoom}
-        onAddParticipant={() => setParticipants((prev) => [...prev, prev.length + 1])}
-        onRemoveParticipant={() =>
-          setParticipants((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev))
-        }
+        onAddParticipant={() => console.log("Add participant (not implemented)")}
+        onRemoveParticipant={() => console.log("Remove participant (not implemented)")}
         // New Props
         inputVolume={inputVolume}
         onInputVolumeChange={setInputVolume}
