@@ -26,8 +26,16 @@ const signupSchema = z
     path: ["confirmPassword"],
   });
 
+
+// 방 참여 스키마
+const joinRoomSchema = z.object({
+  room: z.string().min(1, "방 ID 또는 링크를 입력해주세요."),
+  user: z.string().optional(),
+});
+
 type LoginFormValues = z.infer<typeof loginSchema>;
 type SignupFormValues = z.infer<typeof signupSchema>;
+type JoinRoomFormValues = z.infer<typeof joinRoomSchema>;
 
-export { loginSchema, signupSchema };
-export type { LoginFormValues, SignupFormValues };
+export { loginSchema, signupSchema, joinRoomSchema };
+export type { LoginFormValues, SignupFormValues, JoinRoomFormValues };
