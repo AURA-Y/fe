@@ -16,8 +16,10 @@ export const env = createEnv({
    * 'NEXT_PUBLIC_' 접두사가 붙어야 하며 브라우저에서도 접근 가능합니다.
    */
   client: {
-    NEXT_PUBLIC_LIVEKIT_URL: z.string().min(1),
+    // API 서버
     NEXT_PUBLIC_API_URL: z.string().url(),
+    // LiveKit REST/WS 엔드포인트
+    NEXT_PUBLIC_LIVEKIT_API_URL: z.string().url(),
   },
 
   /**
@@ -26,7 +28,7 @@ export const env = createEnv({
    */
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    NEXT_PUBLIC_LIVEKIT_URL: process.env.NEXT_PUBLIC_LIVEKIT_URL,
+    NEXT_PUBLIC_LIVEKIT_API_URL: process.env.NEXT_PUBLIC_LIVEKIT_API_URL,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
 
