@@ -38,9 +38,8 @@ export default function RoomPage() {
       <LiveKitView
         token={token}
         onDisconnected={() => {
-          // 퇴장 시 sessionStorage 정리
-          sessionStorage.removeItem(`room_${roomId}_token`);
-          sessionStorage.removeItem(`room_${roomId}_nickname`);
+          // 퇴장 시 리다이렉트 (새로고침 시에도 발생할 수 있음)
+          // 토큰은 유지하여 재접속 가능하게 함
           router.push("/");
         }}
       />
