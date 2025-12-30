@@ -23,8 +23,14 @@ export function useJoinRoom() {
       return { room, user, ...response };
     },
     onSuccess: ({ room, user, token }) => {
-      const url = `/room/${room}?nickname=${user}${token ? `&token=${token}` : ""}`;
-      router.push(url);
+      // sessionStorage에 저장
+      sessionStorage.setItem(`room_${room}_nickname`, user);
+      if (token) {
+        sessionStorage.setItem(`room_${room}_token`, token);
+      }
+
+      // URL에는 roomId만 포함
+      router.push(`/room/${room}`);
       toast.success("회의실로 입장합니다.");
     },
     onError: (error) => {
@@ -50,7 +56,12 @@ export function useCreateRoom() {
       return { roomId, user: data.user, token };
     },
     onSuccess: ({ roomId, user, token }) => {
-      router.push(`/room/${roomId}?nickname=${user}&token=${token}`);
+      // sessionStorage에 저장
+      sessionStorage.setItem(`room_${roomId}_nickname`, user);
+      sessionStorage.setItem(`room_${roomId}_token`, token);
+
+      // URL에는 roomId만 포함
+      router.push(`/room/${roomId}`);
       toast.success("방이 생성되었습니다.");
     },
     onError: (error) => {

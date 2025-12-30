@@ -26,6 +26,7 @@ export const useAuthStore = create<AuthState>()(
       users: [
         // 목데이터 (테스트용)
         { id: "1", email: "test@example.com", nickname: "테스트유저" },
+        { id: "2", email: "test1@example.com", nickname: "테스트" },
       ],
 
       // 로그인 로직
