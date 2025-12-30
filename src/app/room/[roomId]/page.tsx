@@ -22,7 +22,7 @@ export default function RoomPage() {
     const storedToken = sessionStorage.getItem(`room_${roomId}_token`);
 
     if (!storedToken) {
-      console.error("No token found in sessionStorage");
+      // 토큰이 없으면 조용히 홈으로 리다이렉트
       router.push("/");
       return;
     }

@@ -6,19 +6,21 @@ import { useRouter } from "next/navigation";
 import AiVoiceOption from "./AiVoiceOption";
 import MeetingBasicInfo from "./MeetingBasicInfo";
 import ReferenceMaterialUpload from "./ReferenceMaterialUpload";
+import { useAuthStore } from "@/lib/store/auth.store";
 import { useCreateRoom } from "@/hooks/use-livekit-token";
 import { CreateRoomFormValues, createRoomSchema } from "@/lib/schema/room/roomCreate.schema";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function CreateMeetingSecondStepForm() {
   const router = useRouter();
   // 1. 방 생성 커스텀 훅 가져오기
   const { mutate: createRoomMutate, isPending: isLoading } = useCreateRoom();
+  const { user } = useAuthStore();
 
   // 2. formState로 useState 한방에 처리
   const [formState, setFormState] = useState({
     // API 전송용 & Zod 검증용
-    user: "meeting_organizer",
+    user: user?.nickname || "Guest",
     roomTitle: "화상 회의방 제목을 입력하세요.",
     description: "오늘은 무슨 회의를 할 예정인가요?",
     maxParticipants: 10,
@@ -27,6 +29,13 @@ export default function CreateMeetingSecondStepForm() {
     voice: "male" as "male" | "female",
     files: [] as File[],
   });
+
+  // 유저 정보가 늦게 로드될 경우를 대비해 업데이트
+  useEffect(() => {
+    if (user?.nickname) {
+      setFormState((prev) => ({ ...prev, user: user.nickname }));
+    }
+  }, [user?.nickname]);
 
   // 상태 변경 헬퍼 함수 : 이건 뭐지?
   const updateField = (field: string, value: any) => {
