@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
 
 import "@livekit/components-styles";
+import { Toaster } from "@/components/ui/sonner";
 
 // 1. Props 타입을 인터페이스로 정의합니다.
 interface ProvidersProps {
@@ -29,6 +30,7 @@ export default function Providers({ children }: ProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
+      <Toaster richColors closeButton position="bottom-center" />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

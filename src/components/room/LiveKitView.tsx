@@ -63,10 +63,32 @@ const AutoMuteOnSilence = () => {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const notifiedMutedRef = useRef(false);
+  const autoMuteToastRef = useRef(false);
+  const speakingWhileMutedToastRef = useRef(false);
   const silenceStartRef = useRef<number | null>(null);
   const prevMicEnabledRef = useRef<boolean | null>(null);
   const noiseFloorRef = useRef(0.002); // 현재 환경의 무음 노이즈 바닥값을 추정
+  const meterCtxRef = useRef<AudioContext | null>(null);
+  const meterAnalyserRef = useRef<AnalyserNode | null>(null);
+  const meterStreamRef = useRef<MediaStream | null>(null);
+  const meterDataRef = useRef<Uint8Array | null>(null);
+  const meterDeviceIdRef = useRef<string | null>(null);
+  const ensureMeterRef = useRef<(() => Promise<void>) | null>(null);
+  const lastMutedSpeechRef = useRef<number | null>(null);
+  const mutedSpeakingToastId = "mic-muted-speaking";
+
+  const stopMeter = () => {
+    if (meterStreamRef.current) {
+      meterStreamRef.current.getTracks().forEach((t) => t.stop());
+    }
+    meterStreamRef.current = null;
+    meterAnalyserRef.current = null;
+    if (meterCtxRef.current && meterCtxRef.current.state !== "closed") {
+      meterCtxRef.current.close();
+    }
+    meterCtxRef.current = null;
+    meterDataRef.current = null;
+  };
   const debugSnapshotRef = useRef({
     level: 0,
     peak: 0,
@@ -87,17 +109,20 @@ const AutoMuteOnSilence = () => {
     silenceStartRef.current = null;
     prevMicEnabledRef.current = null;
     noiseFloorRef.current = 0.002;
+    autoMuteToastRef.current = false;
+    speakingWhileMutedToastRef.current = false;
+    lastMutedSpeechRef.current = null;
     if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
       audioCtxRef.current.close();
     }
     audioCtxRef.current = null;
-    notifiedMutedRef.current = false;
   };
 
   const startAnalyser = (mediaTrack: MediaStreamTrack) => {
     if (trackRef.current?.id === mediaTrack.id) return;
     cleanup();
     trackRef.current = mediaTrack;
+    meterDeviceIdRef.current = mediaTrack.getSettings().deviceId || null;
     prevMicEnabledRef.current = null;
 
     const stream = new MediaStream([mediaTrack]);
@@ -114,34 +139,70 @@ const AutoMuteOnSilence = () => {
 
     const dataArray = new Uint8Array(analyser.fftSize);
     const intervalMs = 300;
-    const baseThreshold = 0.003; // 더 낮춰 작은 음성도 발성으로 인식
+    const baseThreshold = 0.0005; // 더 낮춰 작은 음성도 발성으로 인식
     const maxSilenceMs = 10_000;
     let smoothed = 0; // 지수평활로 노이즈 완화
     silenceStartRef.current = null;
 
     timerRef.current = setInterval(() => {
-      if (!analyserRef.current) return;
+      const publications = Array.from(room?.localParticipant.audioTrackPublications.values() ?? []);
+      const publicationStates = publications.map((p) => ({
+        trackSid: p.trackSid,
+        source: p.source,
+        muted: p.isMuted,
+      }));
+      const micEnabled = room?.localParticipant.isMicrophoneEnabled ?? trackRef.current?.enabled ?? false;
+      let willAutoMute = false;
+
+      // mic이 켜져 있으면 보조 모니터 스트림을 중지해 크롬에 추가 마이크로 표시되지 않도록 함
+      if (micEnabled && meterStreamRef.current) {
+        stopMeter();
+      }
+
+      // 우선 순위: 발행 중인 트랙 분석 -> 보조 모니터(별도 getUserMedia) 분석
+      let activeAnalyser: AnalyserNode | null = analyserRef.current;
+      let activeArray: Uint8Array | null = dataArray;
+
+      if (micEnabled === false) {
+        // 선택된 deviceId가 없으면 기본 디바이스를 열지 않아 다른 마이크를 건드리지 않음
+        if (!meterDeviceIdRef.current) {
+          return;
+        }
+        if (!meterAnalyserRef.current || !meterDataRef.current) {
+          ensureMeterRef.current?.();
+          return;
+        } else {
+          activeAnalyser = meterAnalyserRef.current;
+          activeArray = meterDataRef.current;
+        }
+      }
+
+      if (!activeAnalyser || !activeArray) return;
+
       if (audioCtxRef.current?.state === "suspended") {
         audioCtxRef.current.resume().catch(() => {});
       }
-      analyserRef.current.getByteTimeDomainData(dataArray);
+      if (meterCtxRef.current?.state === "suspended") {
+        meterCtxRef.current.resume().catch(() => {});
+      }
+
+      activeAnalyser.getByteTimeDomainData(activeArray);
       let sumSquares = 0;
       let peak = 0;
-      for (let i = 0; i < dataArray.length; i++) {
-        const normalized = (dataArray[i] - 128) / 128;
+      for (let i = 0; i < activeArray.length; i++) {
+        const normalized = (activeArray[i] - 128) / 128;
         sumSquares += normalized * normalized;
         peak = Math.max(peak, Math.abs(normalized));
       }
-      const rms = Math.sqrt(sumSquares / dataArray.length);
+      const rms = Math.sqrt(sumSquares / activeArray.length);
       const level = 0.6 * rms + 0.4 * peak;
-      const micEnabled =
-        (trackRef.current?.enabled ?? true) && (room?.localParticipant.isMicrophoneEnabled ?? true);
 
       // 음소거/해제 전환 시 카운터와 스무딩을 초기화해 재시작 시 바로 10초를 보장
       if (prevMicEnabledRef.current !== micEnabled) {
         silenceStartRef.current = null;
         smoothed = 0;
-        notifiedMutedRef.current = false;
+        autoMuteToastRef.current = false;
+        speakingWhileMutedToastRef.current = false;
       }
       prevMicEnabledRef.current = micEnabled;
 
@@ -150,7 +211,7 @@ const AutoMuteOnSilence = () => {
       const updatedNoiseFloor =
         level < noiseFloor * 3 ? noiseFloor * 0.9 + level * 0.1 : noiseFloor * 0.98 + level * 0.02;
       noiseFloorRef.current = Math.min(updatedNoiseFloor, 0.05);
-      const dynamicThreshold = Math.max(baseThreshold, noiseFloorRef.current * 4 + 0.001);
+      const dynamicThreshold = Math.max(baseThreshold, noiseFloorRef.current * 2 + 0.0005);
 
       // LiveKit이 판단한 발성 상태도 함께 고려
       const lkSpeaking = room?.localParticipant.isSpeaking ?? false;
@@ -158,46 +219,110 @@ const AutoMuteOnSilence = () => {
       // 지수평활로 순간 노이즈 완화 + 하이퍼센시티브 발성 검출
       smoothed = 0.5 * level + 0.5 * smoothed;
       const isSpeaking = lkSpeaking || smoothed > dynamicThreshold || peak > dynamicThreshold * 3;
+      const mutedLevel = Math.max(level, smoothed, peak);
+      // 음소거 시 노이즈로 인한 오검출을 방지: 최소 0.05 이상 + 동적 임계치 2배
+      const mutedSpeakingGate = Math.max(dynamicThreshold * 2, 0.05);
+      const speakingWhileMutedDetected = !micEnabled && mutedLevel > mutedSpeakingGate;
 
       debugSnapshotRef.current = {
         level,
         peak,
         smoothed,
         dynamicThreshold,
+        mutedSpeakingGate,
         noiseFloor: noiseFloorRef.current,
         micEnabled,
         lkSpeaking,
         silenceStart: silenceStartRef.current,
         hasTrack: !!trackRef.current,
+        publicationStates,
       };
+
+      const now = Date.now();
 
       if (isSpeaking) {
         silenceStartRef.current = null;
-        if (!micEnabled && !notifiedMutedRef.current) {
+        if (
+          speakingWhileMutedDetected &&
+          (!speakingWhileMutedToastRef.current ||
+            !lastMutedSpeechRef.current ||
+            now - lastMutedSpeechRef.current > 5000)
+        ) {
           toast.warning("마이크가 꺼진 상태입니다.", {
             description: "다시 말하려면 마이크를 켜주세요.",
+            id: mutedSpeakingToastId,
+            duration: 4000,
           });
-          notifiedMutedRef.current = true;
+          speakingWhileMutedToastRef.current = true;
+          lastMutedSpeechRef.current = now;
         }
       } else if (micEnabled) {
         if (!silenceStartRef.current) {
           silenceStartRef.current = Date.now();
         } else if (Date.now() - silenceStartRef.current > maxSilenceMs) {
+          if (!autoMuteToastRef.current) {
+            toast.warning("10초 이상 말이 없어 마이크를 자동으로 껐습니다.", {
+              description: "다시 말하려면 마이크를 켜주세요.",
+            });
+            autoMuteToastRef.current = true;
+            speakingWhileMutedToastRef.current = false; // 이후 발성 시 안내를 다시 줄 수 있게 초기화
+          }
+          willAutoMute = true;
           room?.localParticipant.setMicrophoneEnabled(false);
           silenceStartRef.current = null;
-          notifiedMutedRef.current = false;
         }
       } else {
         silenceStartRef.current = null;
+        speakingWhileMutedToastRef.current = false;
+        lastMutedSpeechRef.current = null;
       }
 
-      if (micEnabled) {
-        notifiedMutedRef.current = false;
+      if (micEnabled && !willAutoMute) {
+        autoMuteToastRef.current = false;
+        speakingWhileMutedToastRef.current = false;
+        lastMutedSpeechRef.current = null;
       }
     }, intervalMs);
   };
 
   useEffect(() => {
+    let cancelled = false;
+
+    const initMeter = async () => {
+      try {
+        // 보조 모니터 스트림은 한번만 만들고 유지한다.
+        const desiredDeviceId = meterDeviceIdRef.current;
+        if (!desiredDeviceId) return; // 선택된 디바이스가 없으면 기본 디바이스를 열지 않음
+        const currentDeviceId = meterStreamRef.current?.getAudioTracks()[0]?.getSettings().deviceId;
+        if (meterStreamRef.current && desiredDeviceId === currentDeviceId) return;
+
+        stopMeter();
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: desiredDeviceId ? { deviceId: { exact: desiredDeviceId } } : true,
+          video: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        const ctx = new AudioContextClass();
+        meterCtxRef.current = ctx;
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        meterStreamRef.current = stream;
+        meterAnalyserRef.current = analyser;
+        meterDataRef.current = new Uint8Array(analyser.fftSize);
+      } catch (e) {
+        console.error("fallback meter init failed", e);
+      }
+    };
+
+    ensureMeterRef.current = initMeter;
+    initMeter();
+
     if (!room) return;
 
     (window as any).__lkMuteDebug = () => ({
@@ -231,6 +356,8 @@ const AutoMuteOnSilence = () => {
       room.off(RoomEvent.LocalTrackUnpublished, onUnpublished);
       cleanup();
       delete (window as any).__lkMuteDebug;
+      stopMeter();
+      ensureMeterRef.current = null;
     };
   }, [room]);
 
