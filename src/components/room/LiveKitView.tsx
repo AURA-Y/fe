@@ -122,7 +122,11 @@ const AutoMuteOnSilence = () => {
     if (trackRef.current?.id === mediaTrack.id) return;
     cleanup();
     trackRef.current = mediaTrack;
-    meterDeviceIdRef.current = mediaTrack.getSettings().deviceId || null;
+    const deviceId = mediaTrack.getSettings().deviceId || null;
+    meterDeviceIdRef.current = deviceId;
+    if (!deviceId) {
+      stopMeter(); // deviceId를 알 수 없으면 보조 모니터를 열지 않음
+    }
     prevMicEnabledRef.current = null;
 
     const stream = new MediaStream([mediaTrack]);
@@ -159,6 +163,10 @@ const AutoMuteOnSilence = () => {
       if (currentTrackDeviceId !== meterDeviceIdRef.current) {
         meterDeviceIdRef.current = currentTrackDeviceId;
         stopMeter();
+        if (!currentTrackDeviceId) {
+          // 어떤 디바이스도 알 수 없으면 보조 모니터를 열지 않는다
+          return;
+        }
       }
 
       // mic이 켜져 있으면 보조 모니터 스트림을 중지해 크롬에 추가 마이크로 표시되지 않도록 함
