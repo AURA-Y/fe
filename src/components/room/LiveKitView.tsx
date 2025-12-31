@@ -154,6 +154,13 @@ const AutoMuteOnSilence = () => {
       const micEnabled = room?.localParticipant.isMicrophoneEnabled ?? trackRef.current?.enabled ?? false;
       let willAutoMute = false;
 
+      // 디바이스가 바뀌었으면 보조 모니터를 현재 트랙의 deviceId로 재설정
+      const currentTrackDeviceId = trackRef.current?.getSettings().deviceId || null;
+      if (currentTrackDeviceId !== meterDeviceIdRef.current) {
+        meterDeviceIdRef.current = currentTrackDeviceId;
+        stopMeter();
+      }
+
       // mic이 켜져 있으면 보조 모니터 스트림을 중지해 크롬에 추가 마이크로 표시되지 않도록 함
       if (micEnabled && meterStreamRef.current) {
         stopMeter();
