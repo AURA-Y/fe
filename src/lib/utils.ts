@@ -25,7 +25,7 @@ api.interceptors.request.use((config) => {
 });
 
 export const livekitApi = axios.create({
-  baseURL: env.NEXT_PUBLIC_LIVEKIT_URL,
+  baseURL: env.NEXT_PUBLIC_LIVEKIT_API_URL,
   headers: { "Content-Type": "application/json" },
 });
 

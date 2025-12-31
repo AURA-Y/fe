@@ -8,29 +8,80 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { checkNicknameAvailability } from "@/lib/api/api.auth";
 
 export default function SignupForm() {
   const router = useRouter();
   const signup = useAuthStore((state) => state.signup);
+  const [nicknameStatus, setNicknameStatus] = useState<{
+    checking: boolean;
+    available: boolean | null;
+  }>({ checking: false, available: null });
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
   });
 
+  const nickname = watch("nickname");
+
+  // 닉네임 중복 체크 (debounce)
+  useEffect(() => {
+    if (!nickname || nickname.length < 2) {
+      setNicknameStatus({ checking: false, available: null });
+      return;
+    }
+
+    setNicknameStatus({ checking: true, available: null });
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await checkNicknameAvailability(nickname);
+        setNicknameStatus({ checking: false, available: response.data.available });
+      } catch (error) {
+        setNicknameStatus({ checking: false, available: null });
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [nickname]);
+
   const onSubmit = async (data: SignupFormValues) => {
+    console.log("🚀 회원가입 시도:", { email: data.email, nickname: data.nickname });
+
     try {
-      await signup(data.email, data.password, data.nickname);
-      toast.success("회원가입이 완료되었습니다. 로그인해주세요.");
+      const result = await signup(data.email, data.password, data.nickname);
+      console.log("✅ 회원가입 성공:", result);
+      toast.success("✅ 회원가입이 완료되었습니다! 로그인해주세요.", {
+        duration: 5000,
+      });
       router.push("/login");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "회원가입에 실패했습니다.";
-      toast.error(message);
+    } catch (error: any) {
+      console.error("❌ 회원가입 실패:", error);
+
+      let errorMessage = "회원가입에 실패했습니다.";
+
+      if (error?.response) {
+        console.error("❌ 서버 응답 에러:", error.response.data);
+        errorMessage = error.response.data?.message || error.response.data?.error || errorMessage;
+      } else if (error?.request) {
+        console.error("❌ 요청 에러 (서버 응답 없음):", error.request);
+        errorMessage = "서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.";
+      } else {
+        console.error("❌ 기타 에러:", error.message);
+        errorMessage = error.message || errorMessage;
+      }
+
+      toast.error(`❌ ${errorMessage}`, {
+        duration: 7000,
+      });
     }
   };
 
@@ -65,10 +116,25 @@ export default function SignupForm() {
             id="nickname"
             {...register("nickname")}
             placeholder="사용할 닉네임을 입력하세요"
-            className="focus:ring-primary/20 pl-10 transition-all focus:ring-2"
+            className="focus:ring-primary/20 pl-10 pr-10 transition-all focus:ring-2"
           />
+          {nicknameStatus.checking && (
+            <Loader2 className="text-muted-foreground absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 animate-spin" />
+          )}
+          {!nicknameStatus.checking && nicknameStatus.available === true && (
+            <CheckCircle2 className="absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-green-500" />
+          )}
+          {!nicknameStatus.checking && nicknameStatus.available === false && (
+            <XCircle className="absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-red-500" />
+          )}
         </div>
         {errors.nickname && <p className="text-destructive text-xs">{errors.nickname.message}</p>}
+        {!errors.nickname && nicknameStatus.available === true && (
+          <p className="text-xs text-green-500">사용 가능한 닉네임입니다.</p>
+        )}
+        {!errors.nickname && nicknameStatus.available === false && (
+          <p className="text-xs text-red-500">이미 사용 중인 닉네임입니다.</p>
+        )}
       </div>
 
       {/* 비밀번호 */}

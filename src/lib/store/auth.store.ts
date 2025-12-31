@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { api, generateMockUser } from "@/lib/utils";
+import * as authApi from "@/lib/api/api.auth";
 
 interface User {
   id: string;
@@ -51,29 +52,31 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
 
       login: async (email, password) => {
-        // Mock 로그인: 실제 API 호출 없이 Mock 유저 생성
-        await new Promise((resolve) => setTimeout(resolve, 500)); // 네트워크 지연 시뮬레이션
+        const response = await authApi.login(email, password);
+        const { accessToken, user } = response.data;
 
-        const mockUser = generateMockUser();
-        const mockToken = `mock-token-${Date.now()}`;
+        const fullUser = {
+          ...user,
+          nickname: user.name,
+          email: user.username,
+        };
 
-        setAuthHeader(mockToken);
-        set({ user: mockUser, accessToken: mockToken });
+        setAuthHeader(accessToken);
+        set({ user: fullUser, accessToken });
       },
 
       signup: async (email, password, nickname) => {
-        // Mock 회원가입: 실제 API 호출 없이 Mock 유저 생성
-        await new Promise((resolve) => setTimeout(resolve, 500)); // 네트워크 지연 시뮬레이션
+        const response = await authApi.register(email, password, nickname);
+        const { accessToken, user } = response.data;
 
-        const mockUser = {
-          ...generateMockUser(),
-          nickname: nickname, // 사용자가 입력한 닉네임 사용
-          email: email,
+        const fullUser = {
+          ...user,
+          nickname: user.name,
+          email: user.username,
         };
-        const mockToken = `mock-token-${Date.now()}`;
 
-        setAuthHeader(mockToken);
-        set({ user: mockUser, accessToken: mockToken });
+        setAuthHeader(accessToken);
+        set({ user: fullUser, accessToken });
       },
 
       logout: () => {
