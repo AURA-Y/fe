@@ -44,6 +44,9 @@ const roomOptions: RoomOptions = {
     // 화질 저하 방지
     degradationPreference: "maintain-resolution",
   },
+  adaptiveStream: false,
+  dynacast: false,
+};
   // 적응형 스트림 비활성화 - 항상 최고 화질 수신
 interface LiveKitViewProps {
   token: string;
