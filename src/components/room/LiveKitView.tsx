@@ -12,6 +12,8 @@ import {
 import { VideoPresets, RoomOptions, RoomEvent } from "livekit-client";
 import { VideoGrid } from "./VideoGrid";
 import { useEffect, useRef } from "react";
+import * as blazeface from "@tensorflow-models/blazeface";
+import "@tensorflow/tfjs-backend-webgl";
 import { toast } from "sonner";
 
 // 부하 완화: 720p / 24fps, 단일 계층
@@ -75,14 +77,72 @@ const AutoMuteOnSilence = () => {
   const meterDeviceIdRef = useRef<string | null>(null);
   const ensureMeterRef = useRef<(() => Promise<void>) | null>(null);
   const lastMutedSpeechRef = useRef<number | null>(null);
+  const mutedSpeakingToastCountRef = useRef(0);
+  const faceModelRef = useRef<blazeface.BlazeFaceModel | null>(null);
+  const faceModelLoadingRef = useRef<Promise<blazeface.BlazeFaceModel | null> | null>(null);
+  const faceDetectionInFlightRef = useRef<Promise<void> | null>(null);
   const mutedSpeakingToastId = "mic-muted-speaking";
 
   const resolveActiveMicDeviceId = () => {
     return (
-      trackRef.current?.getSettings().deviceId ||
       room?.getActiveDevice("audioinput") ||
-      meterDeviceIdRef.current
+      meterDeviceIdRef.current ||
+      trackRef.current?.getSettings().deviceId ||
+      null
     );
+  };
+
+  const getLocalCameraTrack = () => {
+    const cameraPub = room?.localParticipant.getTrackPublication(Track.Source.Camera);
+    const mediaTrack = cameraPub?.track?.mediaStreamTrack as MediaStreamTrack | undefined;
+    return mediaTrack ?? null;
+  };
+
+  const loadFaceModel = async () => {
+    if (faceModelRef.current) return faceModelRef.current;
+    if (faceModelLoadingRef.current) return faceModelLoadingRef.current;
+    const p = blazeface
+      .load()
+      .then((model) => {
+        faceModelRef.current = model;
+        faceModelLoadingRef.current = null;
+        return model;
+      })
+      .catch(() => {
+        faceModelLoadingRef.current = null;
+        return null;
+      });
+    faceModelLoadingRef.current = p;
+    return p;
+  };
+
+  const detectCloseFace = async (): Promise<boolean | null> => {
+    const videoTrack = getLocalCameraTrack();
+    if (!videoTrack) return null;
+    const model = await loadFaceModel();
+    if (!model) return null;
+    const ImageCaptureCtor = (window as any).ImageCapture;
+    if (!ImageCaptureCtor) return null;
+    try {
+      const capture = new ImageCaptureCtor(videoTrack);
+      const bitmap: ImageBitmap = await capture.grabFrame();
+      const predictions = await model.estimateFaces(bitmap, false);
+      const { width, height } = bitmap;
+      if (typeof bitmap.close === "function") bitmap.close();
+      if (!predictions || predictions.length === 0) return false;
+      const maxAreaRatio = Math.max(
+        ...predictions.map((p) => {
+          const [x1, y1] = p.topLeft as [number, number];
+          const [x2, y2] = p.bottomRight as [number, number];
+          const area = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+          return area / Math.max(1, width * height);
+        }),
+      );
+      const MIN_CLOSE_FACE_AREA_RATIO = 0.03; // face bbox covers >=3% of frame => considered close
+      return maxAreaRatio >= MIN_CLOSE_FACE_AREA_RATIO;
+    } catch {
+      return null;
+    }
   };
 
   const stopMeter = () => {
@@ -164,7 +224,6 @@ const AutoMuteOnSilence = () => {
         muted: p.isMuted,
       }));
       const micEnabled = room?.localParticipant.isMicrophoneEnabled ?? trackRef.current?.enabled ?? false;
-      let willAutoMute = false;
 
       // 디바이스가 바뀌었으면 보조 모니터를 현재 트랙의 deviceId로 재설정
       const currentTrackDeviceId = trackRef.current?.getSettings().deviceId || null;
@@ -187,24 +246,9 @@ const AutoMuteOnSilence = () => {
       let activeArray: Uint8Array | null = dataArray;
 
       if (micEnabled === false) {
-        // 마이크가 꺼져 있으면 보조 스트림으로만 분석하되, 선택된 deviceId가 없으면 건드리지 않음
-        const desiredDeviceId = resolveActiveMicDeviceId();
-        if (!desiredDeviceId) {
-          return;
-        }
-        const currentDeviceId = meterStreamRef.current
-          ?.getAudioTracks()[0]
-          ?.getSettings().deviceId;
-        if (!meterStreamRef.current || currentDeviceId !== desiredDeviceId) {
-          ensureMeterRef.current?.();
-          return;
-        }
-        if (!meterAnalyserRef.current || !meterDataRef.current) {
-          ensureMeterRef.current?.();
-          return;
-        }
-        activeAnalyser = meterAnalyserRef.current;
-        activeArray = meterDataRef.current;
+        // 음소거 상태에서도 기존 트랙의 analyser만 사용해 추가 getUserMedia로 기본 장치를 열지 않는다
+        activeAnalyser = analyserRef.current;
+        activeArray = dataArray;
       }
 
       if (!activeAnalyser || !activeArray) return;
@@ -290,16 +334,29 @@ const AutoMuteOnSilence = () => {
         if (!silenceStartRef.current) {
           silenceStartRef.current = Date.now();
         } else if (Date.now() - silenceStartRef.current > maxSilenceMs) {
-          if (!autoMuteToastRef.current) {
-            toast.warning("10초 이상 말이 없어 마이크를 자동으로 껐습니다.", {
-              description: "다시 말하려면 마이크를 켜주세요.",
+          if (!faceDetectionInFlightRef.current) {
+            faceDetectionInFlightRef.current = (async () => {
+              const hasCloseFace = await detectCloseFace();
+              if (hasCloseFace === true) {
+                silenceStartRef.current = Date.now();
+                autoMuteToastRef.current = false;
+                speakingWhileMutedToastRef.current = false;
+                return;
+              }
+              if (hasCloseFace === false || hasCloseFace === null) {
+                toast.warning("10초 이상 말이 없어 마이크를 자동으로 껐습니다.", {
+                  description: "다시 말하려면 마이크를 켜주세요.",
+                });
+                autoMuteToastRef.current = true;
+                speakingWhileMutedToastRef.current = false; // 이후 발성 시 안내를 다시 줄 수 있게 초기화
+                room?.localParticipant.setMicrophoneEnabled(false);
+                silenceStartRef.current = null;
+              }
+            })().finally(() => {
+              faceDetectionInFlightRef.current = null;
             });
-            autoMuteToastRef.current = true;
-            speakingWhileMutedToastRef.current = false; // 이후 발성 시 안내를 다시 줄 수 있게 초기화
           }
-          willAutoMute = true;
-          room?.localParticipant.setMicrophoneEnabled(false);
-          silenceStartRef.current = null;
+          return;
         }
       } else {
         silenceStartRef.current = null;
@@ -307,7 +364,7 @@ const AutoMuteOnSilence = () => {
         lastMutedSpeechRef.current = null;
       }
 
-      if (micEnabled && !willAutoMute) {
+      if (micEnabled) {
         autoMuteToastRef.current = false;
         speakingWhileMutedToastRef.current = false;
         lastMutedSpeechRef.current = null;
