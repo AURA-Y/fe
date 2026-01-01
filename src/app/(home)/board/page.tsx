@@ -1,13 +1,12 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PAST_MEETINGS, PastMeeting } from "@/mock/board/mockData";
 import { useAuthStore } from "@/lib/store/auth.store";
-import { getReportsByIds } from "@/lib/api/api.reports";
 import { ReportMetadata, ReportDetails } from "@/lib/types/reports.type";
-import { fetchReportDetailsFromS3 } from "@/lib/api/api.s3-reports";
 import ItemHeader from "@/components/board/ItemHeader";
 import ItemOpen from "@/components/board/ItemOpen";
+import { useReportsByIds, useReportDetails } from "@/hooks/use-reports";
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(
@@ -16,65 +15,48 @@ const formatDate = (value: string) =>
 
 export default function PastMeetingsBoardPage() {
   const user = useAuthStore((state) => state.user);
-  const [reportMetadata, setReportMetadata] = useState<ReportMetadata[]>([]);
-  const [selected, setSelected] = useState<PastMeeting | ReportDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [fetchingDetails, setFetchingDetails] = useState(false);
 
-  useEffect(() => {
-    const fetchReports = async () => {
-      console.log("🔍 User object:", user);
-      console.log("📋 roomReportIdxList:", user?.roomReportIdxList);
+  // 1. 회의 목록 가져오기 (React Query)
+  const { data: reportMetadata = [], isLoading: isListLoading } = useReportsByIds(
+    user?.roomReportIdxList
+  );
 
-      if (!user?.roomReportIdxList || user.roomReportIdxList.length === 0) {
-        console.log("❌ No roomReportIdxList found");
-        setLoading(false);
-        return;
-      }
+  // 2. 선택된 회의 관리
+  // selectedId가 있으면 상세 내용을 불어옵니다. (Mock 데이터인 경우 selectedMock에 저장)
+  const [selectedMock, setSelectedMock] = useState<PastMeeting | null>(null);
+  const [selectedRealId, setSelectedRealId] = useState<string | null>(null);
 
-      console.log("✅ Fetching reports for IDs:", user.roomReportIdxList);
+  // 3. 진짜 데이터 상세 내용 가져오기 (React Query)
+  // selectedRealId가 있을 때만 자동으로 fetching 됩니다.
+  const { data: realDetails, isLoading: isDetailLoading } = useReportDetails(
+    selectedRealId || undefined
+  );
 
-      try {
-        const response = await getReportsByIds(user.roomReportIdxList);
-        console.log("✅ Reports fetched:", response.data);
-        setReportMetadata(response.data);
-      } catch (error) {
-        console.error("❌ Failed to fetch reports:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReports();
-  }, [user]);
-
-  const handleSelect = async (meeting: PastMeeting | ReportMetadata) => {
-    // PastMeeting인 경우 바로 선택
+  // 선택 핸들러
+  const handleSelect = (meeting: PastMeeting | ReportMetadata) => {
     if ("title" in meeting) {
-      setSelected(meeting);
-      return;
-    }
-
-    // ReportMetadata인 경우 S3에서 상세 정보 가져오기
-    setFetchingDetails(true);
-    try {
-      const details = await fetchReportDetailsFromS3(meeting.reportId);
-      setSelected(details);
-    } catch (error) {
-      console.error("Failed to fetch report details from S3:", error);
-      alert("회의록 상세 정보를 불러오는데 실패했습니다.");
-    } finally {
-      setFetchingDetails(false);
+      // Mock 데이터 선택 시
+      setSelectedMock(meeting);
+      setSelectedRealId(null); // 진짜 선택 해제
+    } else {
+      // Real 데이터 선택 시
+      setSelectedRealId(meeting.reportId);
+      setSelectedMock(null); // Mock 선택 해제
     }
   };
 
-  const handleClose = () => setSelected(null);
+  const handleClose = () => {
+    setSelectedMock(null);
+    setSelectedRealId(null);
+  };
 
-  const outerScrollClass = selected ? "overflow-hidden" : "ghost-scroll-zero overflow-y-auto";
+  // 현재 보여줄 상세 내용 (Mock이 선택되었으면 Mock, 아니면 Real)
+  const selectedDisplay = selectedMock || realDetails || null;
 
+  // 전체 목록 합치기
   const allMeetings = [...reportMetadata, ...PAST_MEETINGS];
 
-  if (loading) {
+  if (isListLoading) {
     return (
       <div className="min-h-screen w-full bg-slate-50 p-6 dark:bg-slate-950">
         <div className="mx-auto max-w-5xl">
@@ -94,8 +76,18 @@ export default function PastMeetingsBoardPage() {
           </p>
         </div>
 
-        <ItemHeader selected={selected} onSelect={handleSelect} meetings={allMeetings} />
-        <ItemOpen selected={selected} onClose={handleClose} />
+        <ItemHeader selected={selectedDisplay} onSelect={handleSelect} meetings={allMeetings} />
+
+        {/* 상세 내용 표시 (로딩 중이면 로딩 표시) */}
+        {isDetailLoading && selectedRealId ? (
+          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl border-l bg-white p-6 shadow-2xl transition-transform duration-300 ease-in-out md:w-[600px]">
+            <div className="flex h-full items-center justify-center">
+              <p>상세 내용 불러오는 중...</p>
+            </div>
+          </div>
+        ) : (
+          <ItemOpen selected={selectedDisplay} onClose={handleClose} />
+        )}
       </div>
     </div>
   );
