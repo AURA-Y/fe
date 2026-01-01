@@ -22,21 +22,29 @@ import {
   updateNoiseFloor,
 } from "@/lib/utils/automute.utils";
 
-// 부하 완화: 720p / 24fps, 단일 계층
+// VP9 최고 화질 설정
 const roomOptions: RoomOptions = {
   videoCaptureDefaults: {
-    resolution: VideoPresets.h720.resolution,
+    resolution: VideoPresets.h1080.resolution,
     facingMode: "user",
-    frameRate: 24,
+    frameRate: 30,
   },
   publishDefaults: {
     videoCodec: "vp9",
+    // 시뮬캐스트 비활성화 - 항상 최고 화질 전송
     simulcast: false,
+    // VP9 최고 화질 비트레이트 설정 (최대 5Mbps)
+    videoEncoding: {
+      maxBitrate: 5_000_000,
+      maxFramerate: 30,
+      priority: "high",
+    },
+    // VP9 SVC (Scalable Video Coding) - 더 효율적인 고화질
+    scalabilityMode: "L1T3",
+    // 화질 저하 방지
+    degradationPreference: "maintain-resolution",
   },
-  adaptiveStream: false,
-  dynacast: false,
-};
-
+  // 적응형 스트림 비활성화 - 항상 최고 화질 수신
 interface LiveKitViewProps {
   token: string;
   onDisconnected: () => void;
