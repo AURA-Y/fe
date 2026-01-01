@@ -1,13 +1,5 @@
 import { api } from "@/lib/utils";
-
-export interface AuthResponse {
-  accessToken: string;
-  user: {
-    id: string;
-    username: string;
-    name: string;
-  };
-}
+import { AuthResponse } from "../types/auth.type";
 
 export const login = (email: string, password: string) =>
   api.post<AuthResponse>("/auth/login", {

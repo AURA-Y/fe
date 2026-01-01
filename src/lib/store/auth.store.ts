@@ -2,24 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { api } from "@/lib/utils";
 import * as authApi from "@/lib/api/api.auth";
-
-interface User {
-  id: string;
-  username: string;
-  name: string;
-  nickname: string;
-  email: string;
-}
-
-interface AuthState {
-  user: User | null;
-  accessToken: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, nickname: string) => Promise<void>;
-  logout: () => void;
-  isHydrated: boolean;
-  setHydrated: () => void;
-}
+import { AuthState } from "../types/auth.type";
 
 const AUTH_STORAGE_KEY = "auth-storage-mock";
 
@@ -42,8 +25,6 @@ export const getStoredToken = (): string | null => {
     return null;
   }
 };
-
-
 
 export const useAuthStore = create<AuthState>()(
   persist(

@@ -4,7 +4,6 @@ import { twMerge } from "tailwind-merge";
 import axios from "axios";
 import { env } from "@/env.mjs";
 import { toast } from "sonner";
-import { getStoredToken } from "@/lib/store/auth.store";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -13,15 +12,6 @@ export function cn(...inputs: ClassValue[]) {
 export const api = axios.create({
   baseURL: env.NEXT_PUBLIC_API_URL,
   headers: { "Content-Type": "application/json" },
-});
-
-// 요청마다 로컬스토리지에 저장된 JWT를 자동으로 실어 보냄
-api.interceptors.request.use((config) => {
-  const token = getStoredToken();
-  if (token && !config.headers.Authorization) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
 });
 
 export const livekitApi = axios.create({
@@ -114,3 +104,11 @@ export const formatDate = (value: string) =>
   new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(
     new Date(value)
   );
+
+export const setAuthHeader = (token?: string | null) => {
+  if (token) {
+    api.defaults.headers.common.Authorization = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common.Authorization;
+  }
+};
