@@ -77,6 +77,14 @@ const AutoMuteOnSilence = () => {
   const lastMutedSpeechRef = useRef<number | null>(null);
   const mutedSpeakingToastId = "mic-muted-speaking";
 
+  const resolveActiveMicDeviceId = () => {
+    return (
+      trackRef.current?.getSettings().deviceId ||
+      room?.getActiveDevice("audioinput") ||
+      meterDeviceIdRef.current
+    );
+  };
+
   const stopMeter = () => {
     if (meterStreamRef.current) {
       meterStreamRef.current.getTracks().forEach((t) => t.stop());
@@ -122,7 +130,7 @@ const AutoMuteOnSilence = () => {
     if (trackRef.current?.id === mediaTrack.id) return;
     cleanup();
     trackRef.current = mediaTrack;
-    const deviceId = mediaTrack.getSettings().deviceId || null;
+    const deviceId = mediaTrack.getSettings().deviceId || room?.getActiveDevice("audioinput") || null;
     meterDeviceIdRef.current = deviceId;
     if (!deviceId) {
       stopMeter(); // deviceId를 알 수 없으면 보조 모니터를 열지 않음
@@ -179,17 +187,24 @@ const AutoMuteOnSilence = () => {
       let activeArray: Uint8Array | null = dataArray;
 
       if (micEnabled === false) {
-        // 선택된 deviceId가 없으면 기본 디바이스를 열지 않아 다른 마이크를 건드리지 않음
-        if (!meterDeviceIdRef.current) {
+        // 마이크가 꺼져 있으면 보조 스트림으로만 분석하되, 선택된 deviceId가 없으면 건드리지 않음
+        const desiredDeviceId = resolveActiveMicDeviceId();
+        if (!desiredDeviceId) {
+          return;
+        }
+        const currentDeviceId = meterStreamRef.current
+          ?.getAudioTracks()[0]
+          ?.getSettings().deviceId;
+        if (!meterStreamRef.current || currentDeviceId !== desiredDeviceId) {
+          ensureMeterRef.current?.();
           return;
         }
         if (!meterAnalyserRef.current || !meterDataRef.current) {
           ensureMeterRef.current?.();
           return;
-        } else {
-          activeAnalyser = meterAnalyserRef.current;
-          activeArray = meterDataRef.current;
         }
+        activeAnalyser = meterAnalyserRef.current;
+        activeArray = meterDataRef.current;
       }
 
       if (!activeAnalyser || !activeArray) return;
@@ -305,15 +320,16 @@ const AutoMuteOnSilence = () => {
 
     const initMeter = async () => {
       try {
-        // 보조 모니터 스트림은 한번만 만들고 유지한다.
-        const desiredDeviceId = meterDeviceIdRef.current;
-        if (!desiredDeviceId) return; // 선택된 디바이스가 없으면 기본 디바이스를 열지 않음
-        const currentDeviceId = meterStreamRef.current?.getAudioTracks()[0]?.getSettings().deviceId;
+        const desiredDeviceId = resolveActiveMicDeviceId();
+        if (!desiredDeviceId) return; // 장치가 없으면 보조 스트림을 열지 않음
+        const currentDeviceId = meterStreamRef.current
+          ?.getAudioTracks()[0]
+          ?.getSettings().deviceId;
         if (meterStreamRef.current && desiredDeviceId === currentDeviceId) return;
 
         stopMeter();
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: desiredDeviceId ? { deviceId: { exact: desiredDeviceId } } : true,
+          audio: { deviceId: { exact: desiredDeviceId } },
           video: false,
         });
         if (cancelled) {
@@ -330,13 +346,16 @@ const AutoMuteOnSilence = () => {
         meterStreamRef.current = stream;
         meterAnalyserRef.current = analyser;
         meterDataRef.current = new Uint8Array(analyser.fftSize);
+        const resolvedDeviceId = stream.getAudioTracks()[0]?.getSettings().deviceId;
+        if (resolvedDeviceId) {
+          meterDeviceIdRef.current = resolvedDeviceId;
+        }
       } catch (e) {
         console.error("fallback meter init failed", e);
       }
     };
 
     ensureMeterRef.current = initMeter;
-    initMeter();
 
     if (!room) return;
 
@@ -362,13 +381,22 @@ const AutoMuteOnSilence = () => {
 
     const onPublished = () => findTrackAndStart();
     const onUnpublished = () => cleanup();
+    const onActiveDeviceChanged = (deviceKind: MediaDeviceKind, deviceId: string) => {
+      if (deviceKind !== "audioinput") return;
+      meterDeviceIdRef.current = deviceId || resolveActiveMicDeviceId();
+      stopMeter();
+      findTrackAndStart();
+    };
 
     room.on(RoomEvent.LocalTrackPublished, onPublished);
     room.on(RoomEvent.LocalTrackUnpublished, onUnpublished);
+    room.on(RoomEvent.ActiveDeviceChanged, onActiveDeviceChanged);
 
     return () => {
       room.off(RoomEvent.LocalTrackPublished, onPublished);
       room.off(RoomEvent.LocalTrackUnpublished, onUnpublished);
+      room.off(RoomEvent.ActiveDeviceChanged, onActiveDeviceChanged);
+      cancelled = true;
       cleanup();
       delete (window as any).__lkMuteDebug;
       stopMeter();
