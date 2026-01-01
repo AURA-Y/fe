@@ -10,14 +10,17 @@ export interface AuthResponse {
 }
 
 export const login = (email: string, password: string) =>
-  api.post<AuthResponse>("/api/auth/login", {
-    username: email,
+  api.post<AuthResponse>("/auth/login", {
+    email,
     password,
   });
 
 export const register = (email: string, password: string, nickname: string) =>
-  api.post<AuthResponse>("/api/auth/register", {
-    username: email,
+  api.post<AuthResponse>("/auth/register", {
+    email,
     password,
-    name: nickname,
+    nickname,
   });
+
+export const checkNicknameAvailability = (nickname: string) =>
+  api.get<{ available: boolean }>(`/auth/check-nickname/${nickname}`);
