@@ -277,6 +277,7 @@ const AutoMuteOnSilence = () => {
         smoothed = 0;
         autoMuteToastRef.current = false;
         speakingWhileMutedToastRef.current = false;
+        mutedSpeakingToastCountRef.current = 0;
       }
       prevMicEnabledRef.current = micEnabled;
 
@@ -318,6 +319,7 @@ const AutoMuteOnSilence = () => {
         silenceStartRef.current = null;
         if (
           speakingWhileMutedDetected &&
+          mutedSpeakingToastCountRef.current < 3 &&
           (!speakingWhileMutedToastRef.current ||
             !lastMutedSpeechRef.current ||
             now - lastMutedSpeechRef.current > 5000)
@@ -329,6 +331,7 @@ const AutoMuteOnSilence = () => {
           });
           speakingWhileMutedToastRef.current = true;
           lastMutedSpeechRef.current = now;
+          mutedSpeakingToastCountRef.current += 1;
         }
       } else if (micEnabled) {
         if (!silenceStartRef.current) {
@@ -343,7 +346,7 @@ const AutoMuteOnSilence = () => {
                 speakingWhileMutedToastRef.current = false;
                 return;
               }
-              if (hasCloseFace === false || hasCloseFace === null) {
+              if (hasCloseFace === false) {
                 toast.warning("10초 이상 말이 없어 마이크를 자동으로 껐습니다.", {
                   description: "다시 말하려면 마이크를 켜주세요.",
                 });
@@ -351,6 +354,12 @@ const AutoMuteOnSilence = () => {
                 speakingWhileMutedToastRef.current = false; // 이후 발성 시 안내를 다시 줄 수 있게 초기화
                 room?.localParticipant.setMicrophoneEnabled(false);
                 silenceStartRef.current = null;
+              }
+              if (hasCloseFace === null) {
+                // 감지 불가 시 보수적으로 음소거를 보류하고 타이머를 다시 시작
+                silenceStartRef.current = Date.now();
+                autoMuteToastRef.current = false;
+                speakingWhileMutedToastRef.current = false;
               }
             })().finally(() => {
               faceDetectionInFlightRef.current = null;
