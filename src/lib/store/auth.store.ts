@@ -1,24 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { api, generateMockUser } from "@/lib/utils";
-
-interface User {
-  id: string;
-  username: string;
-  name: string;
-  nickname: string;
-  email: string;
-}
-
-interface AuthState {
-  user: User | null;
-  accessToken: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, nickname: string) => Promise<void>;
-  logout: () => void;
-  isHydrated: boolean;
-  setHydrated: () => void;
-}
+import { api } from "@/lib/utils";
+import * as authApi from "@/lib/api/api.auth";
+import { AuthState } from "../types/auth.type";
 
 const AUTH_STORAGE_KEY = "auth-storage-mock";
 
@@ -42,8 +26,6 @@ export const getStoredToken = (): string | null => {
   }
 };
 
-
-
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -51,29 +33,31 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
 
       login: async (email, password) => {
-        // Mock 로그인: 실제 API 호출 없이 Mock 유저 생성
-        await new Promise((resolve) => setTimeout(resolve, 500)); // 네트워크 지연 시뮬레이션
+        const response = await authApi.login(email, password);
+        const { accessToken, user } = response.data;
 
-        const mockUser = generateMockUser();
-        const mockToken = `mock-token-${Date.now()}`;
+        const fullUser = {
+          ...user,
+          nickname: user.name,
+          email: user.username,
+        };
 
-        setAuthHeader(mockToken);
-        set({ user: mockUser, accessToken: mockToken });
+        setAuthHeader(accessToken);
+        set({ user: fullUser, accessToken });
       },
 
       signup: async (email, password, nickname) => {
-        // Mock 회원가입: 실제 API 호출 없이 Mock 유저 생성
-        await new Promise((resolve) => setTimeout(resolve, 500)); // 네트워크 지연 시뮬레이션
+        const response = await authApi.register(email, password, nickname);
+        const { accessToken, user } = response.data;
 
-        const mockUser = {
-          ...generateMockUser(),
-          nickname: nickname, // 사용자가 입력한 닉네임 사용
-          email: email,
+        const fullUser = {
+          ...user,
+          nickname: user.name,
+          email: user.username,
         };
-        const mockToken = `mock-token-${Date.now()}`;
 
-        setAuthHeader(mockToken);
-        set({ user: mockUser, accessToken: mockToken });
+        setAuthHeader(accessToken);
+        set({ user: fullUser, accessToken });
       },
 
       logout: () => {
@@ -91,12 +75,8 @@ export const useAuthStore = create<AuthState>()(
       name: AUTH_STORAGE_KEY,
       partialize: (state) => ({ user: state.user, accessToken: state.accessToken }),
       onRehydrateStorage: () => (state) => {
-        // localStorage에 저장된 유저가 없으면 랜덤 Mock 유저 생성 (클라이언트에서만)
-        if (state && !state.user && !state.accessToken) {
-          const mockUser = generateMockUser();
-          state.user = mockUser;
-          state.accessToken = "mock-token";
-        } else if (state?.accessToken) {
+        // localStorage에서 토큰 복원 시 Authorization 헤더 설정
+        if (state?.accessToken) {
           setAuthHeader(state.accessToken);
         }
         state?.setHydrated();
