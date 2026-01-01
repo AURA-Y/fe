@@ -1,3 +1,4 @@
+"use client";
 import "@livekit/components-styles";
 import { env } from "@/env.mjs";
 import {
@@ -12,8 +13,6 @@ import {
 import { VideoPresets, RoomOptions, RoomEvent, Track } from "livekit-client";
 import { VideoGrid } from "./VideoGrid";
 import { useEffect, useRef } from "react";
-import * as blazeface from "@tensorflow-models/blazeface";
-import "@tensorflow/tfjs-backend-webgl";
 import { toast } from "sonner";
 
 // 부하 완화: 720p / 24fps, 단일 계층
@@ -78,8 +77,8 @@ const AutoMuteOnSilence = () => {
   const ensureMeterRef = useRef<(() => Promise<void>) | null>(null);
   const lastMutedSpeechRef = useRef<number | null>(null);
   const mutedSpeakingToastCountRef = useRef(0);
-  const faceModelRef = useRef<blazeface.BlazeFaceModel | null>(null);
-  const faceModelLoadingRef = useRef<Promise<blazeface.BlazeFaceModel | null> | null>(null);
+  const faceDetectorRef = useRef<any | null>(null);
+  const faceDetectorLoadingRef = useRef<Promise<any | null> | null>(null);
   const faceDetectionInFlightRef = useRef<Promise<void> | null>(null);
   const analysisTrackRef = useRef<MediaStreamTrack | null>(null);
   const mutedSpeakingToastId = "mic-muted-speaking";
@@ -99,44 +98,56 @@ const AutoMuteOnSilence = () => {
     return mediaTrack ?? null;
   };
 
-  const loadFaceModel = async () => {
-    if (faceModelRef.current) return faceModelRef.current;
-    if (faceModelLoadingRef.current) return faceModelLoadingRef.current;
-    const p = blazeface
-      .load()
-      .then((model) => {
-        faceModelRef.current = model;
-        faceModelLoadingRef.current = null;
-        return model;
+  const loadFaceDetector = async () => {
+    if (faceDetectorRef.current) return faceDetectorRef.current;
+    if (faceDetectorLoadingRef.current) return faceDetectorLoadingRef.current;
+    const p = import("@mediapipe/tasks-vision")
+      .then(async (vision) => {
+        const filesetResolver = await vision.FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm",
+        );
+        const detector = await vision.FaceDetector.createFromOptions(filesetResolver, {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/face_detector/short_range/float16/1/face_detector_short_range.tflite",
+          },
+          runningMode: "IMAGE",
+        });
+        return detector;
+      })
+      .then((detector) => {
+        faceDetectorRef.current = detector;
+        faceDetectorLoadingRef.current = null;
+        return detector;
       })
       .catch(() => {
-        faceModelLoadingRef.current = null;
+        faceDetectorLoadingRef.current = null;
         return null;
       });
-    faceModelLoadingRef.current = p;
+    faceDetectorLoadingRef.current = p;
     return p;
   };
 
   const detectCloseFace = async (): Promise<boolean | null> => {
     const videoTrack = getLocalCameraTrack();
     if (!videoTrack) return null;
-    const model = await loadFaceModel();
-    if (!model) return null;
+    const detector = await loadFaceDetector();
+    if (!detector) return null;
     const ImageCaptureCtor = (window as any).ImageCapture;
     if (!ImageCaptureCtor) return null;
     try {
       const capture = new ImageCaptureCtor(videoTrack);
       const bitmap: ImageBitmap = await capture.grabFrame();
-      const predictions = await model.estimateFaces(bitmap, false);
+      const result = detector.detect(bitmap);
+      const detections = result?.detections ?? [];
       const { width, height } = bitmap;
       if (typeof bitmap.close === "function") bitmap.close();
-      if (!predictions || predictions.length === 0) return false;
+      if (!detections || detections.length === 0) return false;
       const maxAreaRatio = Math.max(
-        ...predictions.map((p) => {
-          const [x1, y1] = p.topLeft as [number, number];
-          const [x2, y2] = p.bottomRight as [number, number];
-          const area = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
-          return area / Math.max(1, width * height);
+        ...detections.map((d: any) => {
+          const box = d.boundingBox;
+          const area = Math.max(0, box?.width ?? 0) * Math.max(0, box?.height ?? 0);
+          return width && height ? area / (width * height) : 0;
         }),
       );
       const MIN_CLOSE_FACE_AREA_RATIO = 0.03; // face bbox covers >=3% of frame => considered close
