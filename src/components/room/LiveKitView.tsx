@@ -1,4 +1,5 @@
 import "@livekit/components-styles";
+import { useEffect, useRef, useState } from "react";
 import { env } from "@/env.mjs";
 import {
   LiveKitRoom,
@@ -7,8 +8,9 @@ import {
   Chat,
   LayoutContextProvider,
   useLayoutContext,
+  useRoomContext,
 } from "@livekit/components-react";
-import { VideoPresets, RoomOptions } from "livekit-client";
+import { VideoPresets, RoomEvent, RoomOptions } from "livekit-client";
 import { VideoGrid } from "./VideoGrid";
 
 // VP9 최고 화질 설정
@@ -43,9 +45,107 @@ interface LiveKitViewProps {
   onDisconnected: () => void;
 }
 
+interface AiMessage {
+  id: string;
+  text: string;
+  minutes: { source: string; snippet: string }[];
+}
+
+const AiSearchPanel = ({ height }: { height: number }) => {
+  const room = useRoomContext();
+  const [messages, setMessages] = useState<AiMessage[]>([]);
+
+  useEffect(() => {
+    if (!room) return;
+
+    const onData = (payload: Uint8Array) => {
+      let parsed: any = null;
+      try {
+        const text = new TextDecoder().decode(payload);
+        parsed = JSON.parse(text);
+      } catch {
+        return;
+      }
+
+      if (parsed?.type !== "search_answer" || !parsed?.text) return;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString() + Math.random(),
+          text: parsed.text,
+          minutes: Array.isArray(parsed.minutes) ? parsed.minutes : [],
+        },
+      ]);
+    };
+
+    room.on(RoomEvent.DataReceived, onData);
+    return () => {
+      room.off(RoomEvent.DataReceived, onData);
+    };
+  }, [room]);
+
+  return (
+    <div
+      className="border-b border-[#222] p-4 text-sm text-slate-200 overflow-y-auto"
+      style={{ height }}
+    >
+      <p className="mb-2 text-xs font-semibold text-slate-400">AI 검색 결과</p>
+      {messages.length === 0 ? (
+        <p className="text-xs text-slate-400">AI 검색 결과가 여기에 표시됩니다.</p>
+      ) : (
+        <div className="space-y-3">
+          {messages.map((msg) => (
+            <div key={msg.id} className="rounded-md bg-[#151515] p-3">
+              <p className="whitespace-pre-wrap text-sm text-slate-100">{msg.text}</p>
+              {msg.minutes.length > 0 && (
+                <div className="mt-2 text-xs text-slate-400">
+                  {msg.minutes.map((m) => (
+                    <p key={`${msg.id}-${m.source}`}>
+                      [{m.source}] {m.snippet}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const RoomContent = () => {
   const layoutContext = useLayoutContext();
   const showChat = layoutContext?.widget.state?.showChat;
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const [panelHeight, setPanelHeight] = useState(160);
+
+  useEffect(() => {
+    const handleMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current || !sidebarRef.current) return;
+      const rect = sidebarRef.current.getBoundingClientRect();
+      const minHeight = 80;
+      const maxHeight = Math.max(120, rect.height - 160);
+      const nextHeight = Math.min(maxHeight, Math.max(minHeight, e.clientY - rect.top));
+      setPanelHeight(nextHeight);
+    };
+
+    const handleUp = () => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+  }, []);
 
   return (
     <>
@@ -56,7 +156,21 @@ const RoomContent = () => {
             showChat ? "block" : "hidden"
           }`}
         >
-          <Chat style={{ width: "100%", height: "100%" }} />
+          <div className="flex h-full flex-col" ref={sidebarRef}>
+            <AiSearchPanel height={panelHeight} />
+            <div
+              className="h-2 cursor-row-resize bg-[#111] hover:bg-[#1a1a1a]"
+              onMouseDown={() => {
+                isDraggingRef.current = true;
+                document.body.style.cursor = "row-resize";
+                document.body.style.userSelect = "none";
+              }}
+              title="드래그하여 높이 조절"
+            />
+            <div className="min-h-0 flex-1">
+              <Chat style={{ width: "100%", height: "100%" }} />
+            </div>
+          </div>
         </div>
       </div>
       <ControlBar controls={{ chat: true }} />
