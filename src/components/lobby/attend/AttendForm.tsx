@@ -36,7 +36,7 @@ export default function AttendForm() {
 
     joinRoom({
       room: roomId,
-      user: user.nickname,
+      user: user.nickName,
     });
   };
 

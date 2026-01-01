@@ -32,10 +32,10 @@ export default function CreateMeetingSecondStepForm() {
 
   // 유저 정보가 늦게 로드될 경우를 대비해 업데이트
   useEffect(() => {
-    if (user?.nickname) {
-      setFormState((prev) => ({ ...prev, user: user.nickname }));
+    if (user?.nickName) {
+      setFormState((prev) => ({ ...prev, user: user.nickName }));
     }
-  }, [user?.nickname]);
+  }, [user?.nickName]);
 
   // 상태 변경 헬퍼 함수 : 이건 뭐지?
   const updateField = (field: string, value: any) => {

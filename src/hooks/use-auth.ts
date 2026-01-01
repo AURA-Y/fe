@@ -26,13 +26,7 @@ export const useSignup = () => {
     onSuccess: (response) => {
       const { accessToken, user } = response.data;
 
-      const fullUser = {
-        ...user,
-        nickname: user.name,
-        email: user.username,
-      };
-
-      setAuth(fullUser, accessToken);
+      setAuth(user, accessToken);
 
       toast.success("회원가입이 완료되었습니다! 로그인해주세요.", {
         duration: 3000,
@@ -71,13 +65,7 @@ export const useLogin = () => {
     onSuccess: (response) => {
       const { accessToken, user } = response.data;
 
-      const fullUser = {
-        ...user,
-        nickname: user.name,
-        email: user.username,
-      };
-
-      setAuth(fullUser, accessToken);
+      setAuth(user, accessToken);
 
       toast.success("로그인에 성공했습니다!");
       router.push("/");

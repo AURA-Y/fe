@@ -1,15 +1,65 @@
 import { formatDate } from "@/lib/utils";
 import { PastMeeting } from "@/mock/board/modkData";
+import { ReportDetails } from "@/mock/board/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CalendarDays, Paperclip, FileText } from "lucide-react";
+import { getDownloadUrl } from "@/lib/api/api.s3-reports";
+import { useAuthStore } from "@/lib/store/auth.store";
+
 interface ItemOpenProps {
-  selected: PastMeeting | null;
+  selected: PastMeeting | ReportDetails | null;
   onClose: () => void;
 }
 
 const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
+  const accessToken = useAuthStore((state) => state.accessToken);
+
   if (!selected) return null;
+
+  // PastMeeting과 ReportDetails 구분
+  const isPastMeeting = 'title' in selected;
+  const displayTitle = isPastMeeting ? selected.title : selected.topic;
+  const displayDate = isPastMeeting ? selected.date : selected.createdAt;
+  const displaySummary = selected.summary;
+  const displayMinutes = isPastMeeting ? selected.minutes : selected.summary;
+  const displayAttachments = isPastMeeting
+    ? selected.attachments
+    : selected.uploadFileList.map((file) => ({
+        name: file.fileName,
+        url: file.fileUrl,
+      }));
+
+  // 파일 다운로드 핸들러
+  const handleDownload = async (fileUrl: string, fileName: string) => {
+    try {
+      const downloadUrl = getDownloadUrl(fileUrl);
+
+      const response = await fetch(downloadUrl, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('다운로드 실패');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('파일 다운로드 실패:', error);
+      alert('파일 다운로드에 실패했습니다.');
+    }
+  };
+
   return (
     <div>
       {selected && (
@@ -29,27 +79,38 @@ const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
             <div className="scroll-invisible flex h-[calc(100vh-220px)] flex-col gap-6 overflow-y-auto p-6">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold">{selected.title}</h2>
+                  <h2 className="text-2xl font-bold">{displayTitle}</h2>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-500">
                   <CalendarDays className="h-4 w-4" />
-                  <span>{formatDate(selected.date)}</span>
+                  <span>{formatDate(displayDate)}</span>
                 </div>
               </div>
 
               <section className="space-y-2">
                 <h3 className="text-sm font-semibold text-slate-900">회의 주제 / 요약</h3>
                 <p className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">
-                  {selected.summary}
+                  {displaySummary}
                 </p>
               </section>
 
-              <section className="space-y-2">
-                <h3 className="text-sm font-semibold text-slate-900">전체 회의록</h3>
-                <pre className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
-                  {selected.minutes}
-                </pre>
-              </section>
+              {isPastMeeting && (
+                <section className="space-y-2">
+                  <h3 className="text-sm font-semibold text-slate-900">전체 회의록</h3>
+                  <pre className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
+                    {displayMinutes}
+                  </pre>
+                </section>
+              )}
+
+              {!isPastMeeting && (
+                <section className="space-y-2">
+                  <h3 className="text-sm font-semibold text-slate-900">참석자</h3>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">
+                    {(selected as ReportDetails).attendees.join(', ')}
+                  </div>
+                </section>
+              )}
 
               <section className="space-y-3 pb-2">
                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -57,7 +118,7 @@ const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
                   <span>첨부파일</span>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {selected.attachments.map((file) => (
+                  {displayAttachments.map((file) => (
                     <div
                       key={file.name}
                       className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-[0_4px_10px_-12px_rgba(0,0,0,0.3)]"
@@ -68,11 +129,14 @@ const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
                         size="sm"
                         variant="ghost"
                         className="ml-auto text-xs text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-                        asChild
+                        onClick={() => {
+                          if (isPastMeeting) {
+                            return;
+                          }
+                          handleDownload((file as any).url, file.name);
+                        }}
                       >
-                        <a href="#" onClick={(e) => e.preventDefault()}>
-                          열기
-                        </a>
+                        열기
                       </Button>
                     </div>
                   ))}

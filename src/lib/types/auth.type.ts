@@ -2,17 +2,17 @@ interface AuthResponse {
   accessToken: string;
   user: {
     id: string;
-    username: string;
-    name: string;
+    email: string;
+    nickName: string;
+    roomReportIdxList?: string[];
   };
 }
 
 interface User {
   id: string;
-  username: string;
-  name: string;
-  nickname: string;
   email: string;
+  nickName: string;
+  roomReportIdxList?: string[];
 }
 
 interface AuthState {
