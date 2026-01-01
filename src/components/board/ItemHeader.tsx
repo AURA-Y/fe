@@ -1,5 +1,5 @@
 import { formatDate } from "@/lib/utils";
-import { PastMeeting } from "@/mock/board/modkData";
+import { PastMeeting } from "@/mock/board/mockData";
 import { ReportMetadata } from "@/lib/types/reports.type";
 import { CalendarDays, ChevronRight } from "lucide-react";
 

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
-import { PAST_MEETINGS, PastMeeting } from "@/mock/board/modkData";
+import { PAST_MEETINGS, PastMeeting } from "@/mock/board/mockData";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { getReportsByIds } from "@/lib/api/api.reports";
 import { ReportMetadata, ReportDetails } from "@/lib/types/reports.type";

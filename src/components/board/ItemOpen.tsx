@@ -1,5 +1,5 @@
 import { formatDate } from "@/lib/utils";
-import { PastMeeting } from "@/mock/board/modkData";
+import { PastMeeting } from "@/mock/board/mockData";
 import { ReportDetails } from "@/lib/types/reports.type";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
