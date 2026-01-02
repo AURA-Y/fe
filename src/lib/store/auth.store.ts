@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { api } from "@/lib/utils";
-import * as authApi from "@/lib/api/api.auth";
 import { AuthState } from "../types/auth.type";
+import { login, register, checkNicknameAvailability } from "@/lib/api/api.auth";
 
 const AUTH_STORAGE_KEY = "auth-storage-mock";
 
@@ -33,7 +33,7 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
 
       login: async (email, password) => {
-        const response = await authApi.login(email, password);
+        const response = await login(email, password);
         const { accessToken, user } = response.data;
 
         const fullUser = {
@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       signup: async (email, password, nickname) => {
-        const response = await authApi.register(email, password, nickname);
+        const response = await register(email, password, nickname);
         const { accessToken, user } = response.data;
 
         const fullUser = {

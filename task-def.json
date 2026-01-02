@@ -1,0 +1,30 @@
+{
+  "family": "aura-fe-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::431655581446:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "aura-fe-container",
+      "image": "431655581446.dkr.ecr.ap-northeast-2.amazonaws.com/aura-fe-repo:latest", 
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/aura-fe",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
