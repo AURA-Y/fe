@@ -31,7 +31,6 @@ export function useJoinRoom() {
 
       // URL에는 roomId만 포함
       router.push(`/room/${room}`);
-      toast.success("회의실로 입장합니다.");
     },
     onError: (error) => {
       errorHandler(error);
@@ -62,7 +61,6 @@ export function useCreateRoom() {
 
       // URL에는 roomId만 포함
       router.push(`/room/${roomId}`);
-      toast.success("방이 생성되었습니다.");
     },
     onError: (error) => {
       errorHandler(error);

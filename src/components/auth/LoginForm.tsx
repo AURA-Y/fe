@@ -3,35 +3,28 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginFormValues } from "@/lib/schema/auth.schema";
-import { useAuthStore } from "@/lib/store/auth.store";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { useLogin } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginForm() {
-  const router = useRouter();
-  const login = useAuthStore((state) => state.login);
+  const { mutateAsync: loginMutate, isPending } = useLogin();
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    try {
-      await login(data.email, data.password);
-      toast.success("로그인에 성공했습니다!");
-      router.push("/");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "로그인에 실패했습니다.";
-      toast.error(message);
-    }
+    await loginMutate({
+      email: data.email,
+      password: data.password,
+    });
   };
 
   return (
@@ -75,10 +68,17 @@ export default function LoginForm() {
       {/* 로그인 버튼 */}
       <Button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isPending}
         className="w-full bg-linear-to-r from-blue-500 to-blue-600 text-white transition-all hover:shadow-lg"
       >
-        {isSubmitting ? "로그인 중..." : "로그인"}
+        {isPending ? (
+          <span className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            로그인 중...
+          </span>
+        ) : (
+          "로그인"
+        )}
       </Button>
 
       {/* 회원가입 링크 */}

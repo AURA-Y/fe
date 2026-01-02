@@ -26,7 +26,6 @@ const signupSchema = z
     path: ["confirmPassword"],
   });
 
-
 // 방 참여 스키마
 const joinRoomSchema = z.object({
   room: z.string().min(1, "방 ID 또는 링크를 입력해주세요."),

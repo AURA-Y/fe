@@ -102,9 +102,7 @@ export function VideoGrid() {
 
                 <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-md bg-black/60 px-2 py-1 text-sm font-medium text-white backdrop-blur-md">
                   <span className="max-w-[100px] truncate">
-                    {participant.identity.startsWith('ai-bot') && (
-                      <span className="mr-1">🤖</span>
-                    )}
+                    {participant.identity.startsWith("ai-bot") && <span className="mr-1">🤖</span>}
                     {participant.name || participant.identity}
                   </span>
                   {isMuted && (

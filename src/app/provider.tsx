@@ -30,7 +30,7 @@ export default function Providers({ children }: ProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <Toaster richColors closeButton position="bottom-center" />
+      <Toaster position="top-center" richColors />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

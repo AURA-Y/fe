@@ -1,7 +1,9 @@
 "use client";
 
 type FaceDetectorHandle = {
-  detect: (bitmap: ImageBitmap) => { detections?: Array<{ boundingBox?: { width?: number; height?: number } }> };
+  detect: (bitmap: ImageBitmap) => {
+    detections?: Array<{ boundingBox?: { width?: number; height?: number } }>;
+  };
   close?: () => void;
 };
 
@@ -20,7 +22,7 @@ export const createAnalyserFromTrack = (mediaTrack: MediaStreamTrack) => {
   return { analyser, ctx, analysisTrack, dataArray };
 };
 
-export const computeLevel = (data: Uint8Array) => {
+export const computeLevel = (data: ArrayLike<number>) => {
   let sumSquares = 0;
   let peak = 0;
   for (let i = 0; i < data.length; i++) {
@@ -43,7 +45,7 @@ export const updateNoiseFloor = (prevNoiseFloor: number, level: number) => {
 
 export const loadFaceDetector = async (
   detectorRef: RefObject<FaceDetectorHandle | null>,
-  loadingRef: RefObject<Promise<FaceDetectorHandle | null> | null>,
+  loadingRef: RefObject<Promise<FaceDetectorHandle | null> | null>
 ): Promise<FaceDetectorHandle | null> => {
   if (detectorRef.current) return detectorRef.current;
   if (loadingRef.current) return loadingRef.current;
@@ -51,7 +53,7 @@ export const loadFaceDetector = async (
   const p = import("@mediapipe/tasks-vision")
     .then(async (vision) => {
       const filesetResolver = await vision.FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm",
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
       );
       const detector = await vision.FaceDetector.createFromOptions(filesetResolver, {
         baseOptions: {
@@ -80,7 +82,7 @@ export const detectCloseFace = async (
   getVideoTrack: () => MediaStreamTrack | null,
   detectorRef: RefObject<FaceDetectorHandle | null>,
   loadingRef: RefObject<Promise<FaceDetectorHandle | null> | null>,
-  minAreaRatio = 0.03,
+  minAreaRatio = 0.03
 ): Promise<boolean | null> => {
   const videoTrack = getVideoTrack();
   if (!videoTrack) return null;
@@ -104,7 +106,7 @@ export const detectCloseFace = async (
         const box = d.boundingBox ?? {};
         const area = Math.max(0, box.width ?? 0) * Math.max(0, box.height ?? 0);
         return area / (width * height);
-      }),
+      })
     );
     return maxAreaRatio >= minAreaRatio;
   } catch {

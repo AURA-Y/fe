@@ -32,32 +32,9 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
 
-      login: async (email, password) => {
-        const response = await login(email, password);
-        const { accessToken, user } = response.data;
-
-        const fullUser = {
-          ...user,
-          nickname: user.name,
-          email: user.username,
-        };
-
+      setAuth: (user: User, accessToken: string) => {
         setAuthHeader(accessToken);
-        set({ user: fullUser, accessToken });
-      },
-
-      signup: async (email, password, nickname) => {
-        const response = await register(email, password, nickname);
-        const { accessToken, user } = response.data;
-
-        const fullUser = {
-          ...user,
-          nickname: user.name,
-          email: user.username,
-        };
-
-        setAuthHeader(accessToken);
-        set({ user: fullUser, accessToken });
+        set({ user, accessToken });
       },
 
       logout: () => {
