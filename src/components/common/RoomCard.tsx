@@ -19,7 +19,7 @@ export default function RoomCard({ room }: { room: Room }) {
     // 일단 로그인된 유저가 있다면 그 이름을 사용하도록 수정
     joinRoom({
       room: room.roomId,
-      user: user?.nickname || "Guest",
+      user: user?.nickName || "Guest",
     });
   };
 
