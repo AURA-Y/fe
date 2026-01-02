@@ -1,5 +1,4 @@
 import { formatDate, errorHandler } from "@/lib/utils";
-import { PastMeeting } from "@/mock/board/mockData";
 import { ReportDetails } from "@/lib/types/reports.type";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 interface ItemOpenProps {
-  selected: PastMeeting | ReportDetails | null;
+  selected: ReportDetails | null;
   onClose: () => void;
 }
 
@@ -52,18 +51,13 @@ const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
 
   if (!selected) return null;
 
-  // PastMeeting과 ReportDetails 구분
-  const isPastMeeting = "title" in selected;
-  const displayTitle = isPastMeeting ? selected.title : selected.topic;
-  const displayDate = isPastMeeting ? selected.date : selected.createdAt;
+  const displayTitle = selected.topic;
+  const displayDate = selected.createdAt;
   const displaySummary = selected.summary;
-  const displayMinutes = isPastMeeting ? selected.minutes : selected.summary;
-  const displayAttachments = isPastMeeting
-    ? selected.attachments
-    : selected.uploadFileList.map((file) => ({
-        name: file.fileName,
-        url: file.fileUrl,
-      }));
+  const displayAttachments = selected.uploadFileList.map((file) => ({
+    name: file.fileName,
+    url: file.fileUrl,
+  }));
 
   return (
     <div>
@@ -99,23 +93,12 @@ const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
                 </p>
               </section>
 
-              {isPastMeeting && (
-                <section className="space-y-2">
-                  <h3 className="text-sm font-semibold text-slate-900">전체 회의록</h3>
-                  <pre className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
-                    {displayMinutes}
-                  </pre>
-                </section>
-              )}
-
-              {!isPastMeeting && (
-                <section className="space-y-2">
-                  <h3 className="text-sm font-semibold text-slate-900">참석자</h3>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">
-                    {(selected as ReportDetails).attendees.join(", ")}
-                  </div>
-                </section>
-              )}
+              <section className="space-y-2">
+                <h3 className="text-sm font-semibold text-slate-900">참석자</h3>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">
+                  {selected.attendees.join(", ")}
+                </div>
+              </section>
 
               <section className="space-y-3 pb-2">
                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -135,11 +118,8 @@ const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
                         variant="ghost"
                         className="ml-auto text-xs text-blue-600 hover:bg-blue-50 hover:text-blue-700"
                         onClick={() => {
-                          if (isPastMeeting) {
-                            return;
-                          }
                           downloadMutation.mutate({
-                            fileUrl: (file as any).url,
+                            fileUrl: file.url,
                             fileName: file.name,
                           });
                         }}
