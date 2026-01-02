@@ -7,20 +7,22 @@ import AiVoiceOption from "./AiVoiceOption";
 import MeetingBasicInfo from "./MeetingBasicInfo";
 import ReferenceMaterialUpload from "./ReferenceMaterialUpload";
 import { useAuthStore } from "@/lib/store/auth.store";
-import { useCreateRoom } from "@/hooks/use-livekit-token";
 import { CreateRoomFormValues, createRoomSchema } from "@/lib/schema/room/roomCreate.schema";
 import { useEffect, useState } from "react";
+import { uploadReportFiles, createReport, assignReportToUser } from "@/lib/api/api.reports";
+import { createRoom } from "@/lib/api/api.room";
+import { errorHandler } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function CreateMeetingSecondStepForm() {
   const router = useRouter();
-  // 1. 방 생성 커스텀 훅 가져오기
-  const { mutate: createRoomMutate, isPending: isLoading } = useCreateRoom();
-  const { user } = useAuthStore();
+  const { user, accessToken, setAuth } = useAuthStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 2. formState로 useState 한방에 처리
   const [formState, setFormState] = useState({
     // API 전송용 & Zod 검증용
-    user: user?.nickname || "Guest",
+    user: user?.nickName || "Guest",
     roomTitle: "화상 회의방 제목을 입력하세요.",
     description: "오늘은 무슨 회의를 할 예정인가요?",
     maxParticipants: 10,
@@ -54,8 +56,7 @@ export default function CreateMeetingSecondStepForm() {
   // });
 
   // 4. 제출 핸들러
-  const handleSubmit = () => {
-    // formState에서 Zod 검증에 필요한 필드만 뽑아내고, 검사 , 결과
+  const handleSubmit = async () => {
     const validateData: CreateRoomFormValues = {
       user: formState.user,
       roomTitle: formState.roomTitle,
@@ -64,8 +65,57 @@ export default function CreateMeetingSecondStepForm() {
     };
 
     const result = createRoomSchema.safeParse(validateData);
+    if (!result.success) {
+      toast.error("입력값을 다시 확인해 주세요.");
+      return;
+    }
 
-    createRoomMutate(validateData);
+    if (!accessToken) {
+      toast.error("로그인 후 다시 시도해 주세요.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // 1) 파일 업로드 -> S3 메타 획득
+      const uploadFileList =
+        formState.files.length > 0 ? await uploadReportFiles(formState.files) : [];
+
+      // 2) 보고서(목데이터) 생성: DB + S3 JSON
+      const details = await createReport({
+        topic: formState.roomTitle,
+        summary: `${formState.description} (자동 생성된 목데이터 요약)`,
+        attendees: [formState.user || "참석자"],
+        uploadFileList,
+      });
+
+      // 3) 현재 사용자에 보고서 연결 (보드 즉시 반영)
+      if (user) {
+        const updatedList = await assignReportToUser(details.reportId);
+        const nextUser = { ...user, roomReportIdxList: updatedList };
+        setAuth(nextUser as any, accessToken);
+      }
+
+      // 4) LiveKit 방 생성 (기존 흐름 유지)
+      const { roomId, token } = await createRoom({
+        userName: formState.user,
+        roomTitle: formState.roomTitle,
+        description: formState.description,
+        maxParticipants: formState.maxParticipants,
+      });
+
+      sessionStorage.setItem(`room_${roomId}_nickname`, formState.user);
+      if (token) {
+        sessionStorage.setItem(`room_${roomId}_token`, token);
+      }
+
+      toast.success("회의 생성 + 보고서(목데이터) 저장이 완료되었습니다.");
+      router.push(`/room/${roomId}`);
+    } catch (error) {
+      errorHandler(error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -114,9 +164,9 @@ export default function CreateMeetingSecondStepForm() {
         <Button
           className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white"
           onClick={handleSubmit}
-          disabled={isLoading}
+          disabled={isSubmitting}
         >
-          {isLoading ? "생성 중..." : "회의 생성하기"}
+          {isSubmitting ? "생성 중..." : "회의 생성하기"}
         </Button>
       </div>
     </Card>
