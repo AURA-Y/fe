@@ -12,7 +12,7 @@ export const createMeeting = async (formData: CreateMeetingSchema, files: File[]
   });
 
   // Note: Adjust the endpoint path as per your backend requirements
-  const response = await api.post("/meeting/create", data, {
+  const response = await api.post("/restapi/meeting/create", data, {
     headers: {
       "Content-Type": "multipart/form-data",
     },

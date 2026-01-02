@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { useState } from "react";
 
 import "@livekit/components-styles";
+import { Toaster } from "@/components/ui/sonner";
 
 // 1. Props 타입을 인터페이스로 정의합니다.
 interface ProvidersProps {
