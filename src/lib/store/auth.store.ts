@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { api } from "@/lib/utils";
-import { AuthState } from "../types/auth.type";
+import { AuthState, User } from "../types/auth.type";
 import { login, register, checkNicknameAvailability } from "@/lib/api/api.auth";
 
 const AUTH_STORAGE_KEY = "auth-storage-mock";
