@@ -7,16 +7,19 @@ import ItemHeader from "@/components/board/ItemHeader";
 import ItemOpen from "@/components/board/ItemOpen";
 import EmptyState from "@/components/common/EmptyState";
 import { useReportsByIds, useReportDetails } from "@/hooks/use-reports";
+import { Meeting } from "@/mock/mockData";
 
 export default function PastMeetingsBoardPage() {
   const user = useAuthStore((state) => state.user);
 
   // 1. 회의 목록 가져오기 (React Query)
   const {
-    data: reportMetadata = [],
+    data: reportMetadataRaw,
     isLoading: isListLoading,
     isError: isListError,
   } = useReportsByIds(user?.roomReportIdxList);
+
+  const reportMetadata = (reportMetadataRaw || []) as ReportMetadata[];
 
   // 2. 선택된 회의 관리
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
@@ -27,7 +30,7 @@ export default function PastMeetingsBoardPage() {
   );
 
   // 선택 핸들러
-  const handleSelect = (meeting: ReportMetadata) => {
+  const handleSelect = (meeting: any) => {
     setSelectedReportId(meeting.reportId);
   };
 
@@ -74,10 +77,7 @@ export default function PastMeetingsBoardPage() {
               목록에서 회의를 선택하면 전체 회의록을 볼 수 있습니다.
             </p>
           </div>
-          <EmptyState
-            title="아직 회의록이 없습니다."
-            description="첫 회의를 시작해보세요!"
-          />
+          <EmptyState title="아직 회의록이 없습니다." description="첫 회의를 시작해보세요!" />
         </div>
       </div>
     );
@@ -102,18 +102,17 @@ export default function PastMeetingsBoardPage() {
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold">지난 회의록</h1>
           <p className="text-sm text-slate-500">
-            목록에서 회의를 선택하면 전체 회의록을 볼 수 있습니다. ({reportMetadata.length}개
-            회의)
+            목록에서 회의를 선택하면 전체 회의록을 볼 수 있습니다. ({reportMetadata.length}개 회의)
           </p>
         </div>
 
         <ItemHeader
-          selected={reportDetails}
+          selected={(reportDetails as any) || null}
           onSelect={handleSelect}
           meetings={reportMetadata}
         />
 
-        <ItemOpen selected={reportDetails} onClose={handleClose} />
+        <ItemOpen selected={(reportDetails as any) || null} onClose={handleClose} />
       </div>
     </div>
   );

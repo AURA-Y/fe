@@ -21,7 +21,7 @@ export default function AttendForm() {
   } = useForm<JoinRoomFormValues>({
     resolver: async (values, context, options) => {
       const result = await zodResolver(joinRoomSchema)(
-        { ...values, user: user?.nickname || "anonymous" },
+        { ...values, user: user?.nickName || "anonymous" },
         context,
         options
       );

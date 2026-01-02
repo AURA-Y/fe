@@ -161,9 +161,8 @@ const RoomContent = () => {
       <div className="flex flex-1 overflow-hidden">
         <VideoGrid />
         <div
-          className={`h-full w-[320px] border-l border-[#333] bg-[#0e0e0e] ${
-            showChat ? "block" : "hidden"
-          }`}
+          className={`h-full w-[320px] border-l border-[#333] bg-[#0e0e0e] ${showChat ? "block" : "hidden"
+            }`}
         >
           <div className="flex h-full flex-col" ref={sidebarRef}>
             <AiSearchPanel height={panelHeight} />
@@ -295,7 +294,7 @@ const AutoMuteOnSilence = () => {
 
     stopAnalysisTrack();
     const { analyser, ctx, analysisTrack, dataArray } = createAnalyserFromTrack(mediaTrack);
-    ctx.resume().catch(() => {});
+    ctx.resume().catch(() => { });
     audioCtxRef.current = ctx;
     analysisTrackRef.current = analysisTrack;
     analyserRef.current = analyser;
@@ -344,10 +343,10 @@ const AutoMuteOnSilence = () => {
       if (!activeAnalyser || !activeArray) return;
 
       if (audioCtxRef.current?.state === "suspended") {
-        audioCtxRef.current.resume().catch(() => {});
+        audioCtxRef.current.resume().catch(() => { });
       }
       if (meterCtxRef.current?.state === "suspended") {
-        meterCtxRef.current.resume().catch(() => {});
+        meterCtxRef.current.resume().catch(() => { });
       }
 
       activeAnalyser.getByteTimeDomainData(activeArray as any);
