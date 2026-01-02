@@ -67,7 +67,7 @@ export default function PastMeetingsBoardPage() {
   }
 
   // 데이터 없음
-  if (!reportMetadata || reportMetadata.length === 0) {
+  if (reportMetadata.length === 0) {
     return (
       <div className="min-h-screen w-full bg-slate-50 p-6 dark:bg-slate-950">
         <div className="mx-auto max-w-5xl">
