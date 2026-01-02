@@ -10,7 +10,7 @@ import { Mail, Lock, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginForm() {
-  const { mutateAsync: login, isPending } = useLogin();
+  const { mutateAsync: loginMutate, isPending } = useLogin();
 
   const {
     register,
@@ -21,7 +21,7 @@ export default function LoginForm() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    await login({
+    await loginMutate({
       email: data.email,
       password: data.password,
     });

@@ -3,10 +3,12 @@ import { PastMeeting } from "@/mock/board/mockData";
 import { ReportMetadata } from "@/lib/types/reports.type";
 import { CalendarDays, ChevronRight } from "lucide-react";
 
+type Meeting = PastMeeting | ReportMetadata;
+
 interface ItemHeaderProps {
-  selected: PastMeeting | ReportMetadata | null;
-  onSelect: (meeting: PastMeeting | ReportMetadata) => void;
-  meetings: (PastMeeting | ReportMetadata)[];
+  selected: Meeting | null;
+  onSelect: (meeting: Meeting) => void;
+  meetings: Meeting[];
 }
 
 const ItemHeader = ({ selected, onSelect, meetings }: ItemHeaderProps) => {

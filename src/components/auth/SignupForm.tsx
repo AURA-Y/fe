@@ -26,7 +26,7 @@ function useDebounce(value: string, delay: number): string {
 }
 
 export default function SignupForm() {
-  const { mutateAsync: signup, isPending } = useSignup();
+  const { mutateAsync: signupMutate, isPending } = useSignup();
 
   const {
     register,
@@ -44,7 +44,7 @@ export default function SignupForm() {
   const { data: nicknameCheckData, isLoading: isCheckingNickname } = useNicknameCheck(debouncedNickname);
 
   const onSubmit = async (data: SignupFormValues) => {
-    await signup({
+    await signupMutate({
       email: data.email,
       password: data.password,
       nickname: data.nickname,

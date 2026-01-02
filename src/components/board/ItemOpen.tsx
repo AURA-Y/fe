@@ -1,4 +1,4 @@
-import { formatDate } from "@/lib/utils";
+import { formatDate, errorHandler } from "@/lib/utils";
 import { PastMeeting } from "@/mock/board/mockData";
 import { ReportDetails } from "@/lib/types/reports.type";
 import { Card } from "@/components/ui/card";
@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, CalendarDays, Paperclip, FileText } from "lucide-react";
 import { getDownloadUrl } from "@/lib/api/api.s3-reports";
 import { useAuthStore } from "@/lib/store/auth.store";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface ItemOpenProps {
   selected: PastMeeting | ReportDetails | null;
@@ -15,24 +17,9 @@ interface ItemOpenProps {
 const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
   const accessToken = useAuthStore((state) => state.accessToken);
 
-  if (!selected) return null;
-
-  // PastMeeting과 ReportDetails 구분
-  const isPastMeeting = "title" in selected;
-  const displayTitle = isPastMeeting ? selected.title : selected.topic;
-  const displayDate = isPastMeeting ? selected.date : selected.createdAt;
-  const displaySummary = selected.summary;
-  const displayMinutes = isPastMeeting ? selected.minutes : selected.summary;
-  const displayAttachments = isPastMeeting
-    ? selected.attachments
-    : selected.uploadFileList.map((file) => ({
-        name: file.fileName,
-        url: file.fileUrl,
-      }));
-
-  // 파일 다운로드 핸들러
-  const handleDownload = async (fileUrl: string, fileName: string) => {
-    try {
+  // 파일 다운로드 Mutation
+  const downloadMutation = useMutation({
+    mutationFn: async ({ fileUrl, fileName }: { fileUrl: string; fileName: string }) => {
       const downloadUrl = getDownloadUrl(fileUrl);
 
       const response = await fetch(downloadUrl, {
@@ -54,11 +41,29 @@ const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (error) {
-      console.error("파일 다운로드 실패:", error);
-      alert("파일 다운로드에 실패했습니다.");
-    }
-  };
+    },
+    onError: (error: unknown) => {
+      errorHandler(error);
+    },
+    onSuccess: () => {
+      console.log("파일 다운로드가 시작되었습니다.");
+    },
+  });
+
+  if (!selected) return null;
+
+  // PastMeeting과 ReportDetails 구분
+  const isPastMeeting = "title" in selected;
+  const displayTitle = isPastMeeting ? selected.title : selected.topic;
+  const displayDate = isPastMeeting ? selected.date : selected.createdAt;
+  const displaySummary = selected.summary;
+  const displayMinutes = isPastMeeting ? selected.minutes : selected.summary;
+  const displayAttachments = isPastMeeting
+    ? selected.attachments
+    : selected.uploadFileList.map((file) => ({
+        name: file.fileName,
+        url: file.fileUrl,
+      }));
 
   return (
     <div>
@@ -133,10 +138,14 @@ const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
                           if (isPastMeeting) {
                             return;
                           }
-                          handleDownload((file as any).url, file.name);
+                          downloadMutation.mutate({
+                            fileUrl: (file as any).url,
+                            fileName: file.name,
+                          });
                         }}
+                        disabled={downloadMutation.isPending}
                       >
-                        열기
+                        {downloadMutation.isPending ? "다운로드 중..." : "열기"}
                       </Button>
                     </div>
                   ))}
