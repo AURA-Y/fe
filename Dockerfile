@@ -22,9 +22,9 @@ COPY . .
 COPY . .
 
 # Add build-time environment variables
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_LIVEKIT_API_URL
-ARG NEXT_PUBLIC_LIVEKIT_URL
+ENV NEXT_PUBLIC_API_URL="https://aura.ai.kr"
+ENV NEXT_PUBLIC_LIVEKIT_API_URL="https://aura.ai.kr"
+ENV NEXT_PUBLIC_LIVEKIT_URL="wss://aura.ai.kr/livekit-ws"
 
 # Create .env.production file for Next.js to read during build
 RUN echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" > .env.local && \

@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Backend API 프록시 설정 (Mixed Content 해결)
+  // Backend API 및 LiveKit 프록시 설정 (Mixed Content 해결)
   async rewrites() {
     return [
       {
@@ -27,6 +27,10 @@ const nextConfig: NextConfig = {
         source: "/restapi/:path*",
         destination:
           "http://aura-livekit-backend-alb-2058678622.ap-northeast-2.elb.amazonaws.com/restapi/:path*",
+      },
+      {
+        source: "/livekit-ws/:path*",
+        destination: "http://43.202.155.191:7880/:path*",
       },
     ];
   },
