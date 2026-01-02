@@ -9,15 +9,19 @@ import ReferenceMaterialUpload from "./ReferenceMaterialUpload";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { CreateRoomFormValues, createRoomSchema } from "@/lib/schema/room/roomCreate.schema";
 import { useEffect, useState } from "react";
-import { uploadReportFiles, createReport, assignReportToUser } from "@/lib/api/api.reports";
+import { uploadReportFiles, createReport } from "@/lib/api/api.reports";
 import { createRoom } from "@/lib/api/api.room";
 import { errorHandler } from "@/lib/utils";
 import { toast } from "sonner";
+import { useUploadReportFiles, useAssignReportToUser } from "@/hooks/use-filed-setting";
 
 export default function CreateMeetingSecondStepForm() {
   const router = useRouter();
   const { user, accessToken, setAuth } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const uploadMutation = useUploadReportFiles();
+  const [assignReportId, setAssignReportId] = useState<string | null>(null);
+  const assignQuery = useAssignReportToUser(assignReportId || undefined, !!assignReportId);
 
   // 2. formState로 useState 한방에 처리
   const [formState, setFormState] = useState({
@@ -38,6 +42,14 @@ export default function CreateMeetingSecondStepForm() {
       setFormState((prev) => ({ ...prev, user: user.nickName }));
     }
   }, [user?.nickName]);
+
+  // assign 결과가 오면 사용자 roomReportIdxList 업데이트
+  useEffect(() => {
+    if (assignQuery.data && user && accessToken) {
+      const nextUser = { ...user, roomReportIdxList: assignQuery.data };
+      setAuth(nextUser as any, accessToken);
+    }
+  }, [assignQuery.data, user, accessToken, setAuth]);
 
   // 상태 변경 헬퍼 함수 : 이건 뭐지?
   const updateField = (field: string, value: any) => {
@@ -79,7 +91,7 @@ export default function CreateMeetingSecondStepForm() {
     try {
       // 1) 파일 업로드 -> S3 메타 획득
       const uploadFileList =
-        formState.files.length > 0 ? await uploadReportFiles(formState.files) : [];
+        formState.files.length > 0 ? await uploadMutation.mutateAsync(formState.files) : [];
 
       // 2) 보고서(목데이터) 생성: DB + S3 JSON
       const details = await createReport({
@@ -89,12 +101,8 @@ export default function CreateMeetingSecondStepForm() {
         uploadFileList,
       });
 
-      // 3) 현재 사용자에 보고서 연결 (보드 즉시 반영)
-      if (user) {
-        const updatedList = await assignReportToUser(details.reportId);
-        const nextUser = { ...user, roomReportIdxList: updatedList };
-        setAuth(nextUser as any, accessToken);
-      }
+      // 3) 현재 사용자에 보고서 연결 (보드 즉시 반영) - useQuery로 비동기 처리
+      setAssignReportId(details.reportId);
 
       // 4) LiveKit 방 생성 (기존 흐름 유지)
       const { roomId, token } = await createRoom({
