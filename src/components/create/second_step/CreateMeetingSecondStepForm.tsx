@@ -8,7 +8,7 @@ import MeetingBasicInfo from "./MeetingBasicInfo";
 import ReferenceMaterialUpload from "./ReferenceMaterialUpload";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { CreateRoomFormValues, createRoomSchema } from "@/lib/schema/room/roomCreate.schema";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { uploadReportFiles, createReport } from "@/lib/api/api.reports";
 import { createRoom } from "@/lib/api/api.room";
 import { errorHandler } from "@/lib/utils";
@@ -22,6 +22,7 @@ export default function CreateMeetingSecondStepForm() {
   const uploadMutation = useUploadReportFiles();
   const [assignReportId, setAssignReportId] = useState<string | null>(null);
   const assignQuery = useAssignReportToUser(assignReportId || undefined, !!assignReportId);
+  const lastAssignedIdRef = useRef<string | null>(null);
 
   // 2. formState로 useState 한방에 처리
   const [formState, setFormState] = useState({
@@ -45,11 +46,14 @@ export default function CreateMeetingSecondStepForm() {
 
   // assign 결과가 오면 사용자 roomReportIdxList 업데이트
   useEffect(() => {
-    if (assignQuery.data && user && accessToken) {
-      const nextUser = { ...user, roomReportIdxList: assignQuery.data };
-      setAuth(nextUser as any, accessToken);
-    }
-  }, [assignQuery.data, user, accessToken, setAuth]);
+    if (!assignReportId || !assignQuery.data || !user || !accessToken) return;
+    // 동일 reportId에 대해 중복 setAuth 호출을 막아 무한 루프 방지
+    if (lastAssignedIdRef.current === assignReportId) return;
+
+    const nextUser = { ...user, roomReportIdxList: assignQuery.data };
+    setAuth(nextUser as any, accessToken);
+    lastAssignedIdRef.current = assignReportId;
+  }, [assignReportId, assignQuery.data, user, accessToken, setAuth]);
 
   // 상태 변경 헬퍼 함수 : 이건 뭐지?
   const updateField = (field: string, value: any) => {
