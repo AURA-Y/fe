@@ -1,12 +1,13 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { VideoTrack, AudioTrack, useParticipants } from "@livekit/components-react";
+import { VideoTrack, AudioTrack, useParticipants, useTracks } from "@livekit/components-react";
 import { Track } from "livekit-client";
 
 export function VideoGrid() {
   const participants = useParticipants();
   const count = participants.length;
+  const screenTracks = useTracks([Track.Source.ScreenShare]);
 
   const getItemStyle = () => {
     if (count === 1) {
@@ -44,10 +45,30 @@ export function VideoGrid() {
   const itemStyle = getItemStyle();
 
   return (
-    <div className="flex flex-1 items-center justify-center overflow-y-auto bg-[#0b0c15] p-4">
+    <div className="flex flex-1 flex-col overflow-y-auto bg-[#0b0c15] p-4">
+      {screenTracks.length > 0 && (
+        <div className="mb-4 w-full">
+          {screenTracks.map((trackRef) => (
+            <motion.div
+              layout
+              key={`${trackRef.participant.identity}-screenshare`}
+              className="relative aspect-video w-full overflow-hidden rounded-2xl border-2 border-white/10 bg-[#0f111a] shadow-2xl"
+            >
+              <VideoTrack
+                trackRef={trackRef}
+                className="h-full w-full object-contain"
+              />
+              <div className="absolute left-3 top-3 rounded-md bg-black/60 px-2 py-1 text-xs font-medium text-white backdrop-blur-md">
+                화면 공유: {trackRef.participant.name || trackRef.participant.identity}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
       <motion.div
         layout
-        className="flex h-full w-full flex-wrap content-center items-center justify-center gap-4 p-4"
+        className="flex flex-1 flex-wrap content-center items-center justify-center gap-4 p-4"
       >
         <AnimatePresence mode="popLayout">
           {participants.map((participant) => {
