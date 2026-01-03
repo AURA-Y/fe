@@ -29,9 +29,7 @@ export const useSignup = () => {
 
       setAuth(user, accessToken);
 
-      toast.success("회원가입이 완료되었습니다! 로그인해주세요.", {
-        duration: 3000,
-      });
+
       router.push("/login");
     },
 
@@ -54,7 +52,6 @@ export const useLogin = () => {
 
       setAuth(user, accessToken);
 
-      toast.success("로그인에 성공했습니다!");
       router.push("/");
     },
 

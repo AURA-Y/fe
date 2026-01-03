@@ -26,6 +26,16 @@ import { deleteRoomFromDB, getRoomInfoFromDB } from "@/lib/api/api.room";
 import { deleteReport, updateReportSummary } from "@/lib/api/api.reports";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 // VP9 최고 화질 설정
 const roomOptions: RoomOptions = {
@@ -676,62 +686,71 @@ const CustomLeaveButton = ({
 
   return (
     <>
-      {/* 모달 배경 */}
-      {modalStep && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-          onClick={() => setModalStep(null)}
-        >
-          <div
-            className="bg-[#1a1a1a] rounded-lg p-6 min-w-[400px] border border-[#333]"
-            onClick={(e) => e.stopPropagation()}
+      {/* 요약 모달 */}
+      <Dialog open={modalStep === "summary"} onOpenChange={(open) => !open && setModalStep(null)}>
+        <DialogContent className="sm:max-w-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
           >
-            {modalStep === "summary" && (
-              <>
-                <h2 className="text-xl font-bold text-white mb-4">
-                  회의록을 요약하시겠습니까?
-                </h2>
-                <div className="flex gap-3 justify-end">
-                  <button
-                    onClick={handleSummary}
-                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition"
-                  >
-                    요약
-                  </button>
-                  <button
-                    onClick={() => setModalStep("confirm")}
-                    className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded transition"
-                  >
-                    회의 나가기
-                  </button>
-                </div>
-              </>
-            )}
+            <DialogHeader>
+              <DialogTitle className="text-center text-xl">회의록 요약</DialogTitle>
+              <DialogDescription className="pt-4 text-center">
+                회의록을 요약하시겠습니까?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-6 flex gap-2 sm:justify-center">
+              <Button
+                onClick={handleSummary}
+                className="flex items-center justify-center rounded-full bg-blue-600 px-6 font-bold text-white hover:bg-blue-700"
+              >
+                요약
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setModalStep("confirm")}
+                className="flex items-center justify-center rounded-full px-6 font-bold"
+              >
+                회의 나가기
+              </Button>
+            </DialogFooter>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
 
-            {modalStep === "confirm" && (
-              <>
-                <h2 className="text-xl font-bold text-white mb-4">
-                  회의를 종료하시겠습니까?
-                </h2>
-                <div className="flex gap-3 justify-end">
-                  <button
-                    onClick={handleEndMeeting}
-                    className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded transition"
-                  >
-                    회의 종료
-                  </button>
-                  <button
-                    onClick={handleLeaveMeeting}
-                    className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded transition"
-                  >
-                    회의 나가기
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {/* 회의 종료 확인 모달 */}
+      <Dialog open={modalStep === "confirm"} onOpenChange={(open) => !open && setModalStep(null)}>
+        <DialogContent className="sm:max-w-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            <DialogHeader>
+              <DialogTitle className="text-center text-xl">회의 종료</DialogTitle>
+              <DialogDescription className="pt-4 text-center">
+                회의를 종료하시겠습니까?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-6 flex gap-2 sm:justify-center">
+              <Button
+                onClick={handleEndMeeting}
+                className="flex items-center justify-center rounded-full bg-red-600 px-6 font-bold text-white hover:bg-red-700"
+              >
+                회의 종료
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleLeaveMeeting}
+                className="flex items-center justify-center rounded-full px-6 font-bold"
+              >
+                회의 나가기
+              </Button>
+            </DialogFooter>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
 
       {/* 나가기 버튼 */}
       <button
