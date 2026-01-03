@@ -2,6 +2,7 @@
 import "@livekit/components-styles";
 import { useEffect, useRef, useState } from "react";
 import { env } from "@/env.mjs";
+import { toast } from "sonner";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -13,6 +14,12 @@ import {
 } from "@livekit/components-react";
 import { VideoPresets, RoomOptions, RoomEvent, Track } from "livekit-client";
 import { VideoGrid } from "./VideoGrid";
+import {
+  createAnalyserFromTrack,
+  computeLevel,
+  updateNoiseFloor,
+  detectCloseFace,
+} from "@/lib/utils/automute.utils";
 
 
 // VP9 최고 화질 설정
@@ -40,7 +47,7 @@ const roomOptions: RoomOptions = {
   adaptiveStream: false,
   dynacast: false,
 };
-  // 적응형 스트림 비활성화 - 항상 최고 화질 수신
+// 적응형 스트림 비활성화 - 항상 최고 화질 수신
 interface LiveKitViewProps {
   token: string;
   onDisconnected: () => void;
@@ -273,10 +280,10 @@ const RoomContent = () => {
 
       videoTrack.addEventListener("ended", async () => {
         const pub = room.localParticipant.getTrackPublications().find(
-          (p) => p.trackSid === videoTrack.id || p.track === videoTrack
+          (p) => p.trackSid === videoTrack.id || (p.track as any)?.mediaStreamTrack === videoTrack
         );
         if (pub?.track) {
-          await room.localParticipant.unpublishTrack(pub.track);
+          await room.localParticipant.unpublishTrack(pub.track as any);
         }
         activeShareRef.current = null;
       });
@@ -290,9 +297,8 @@ const RoomContent = () => {
       <div className="flex flex-1 overflow-hidden">
         <VideoGrid />
         <div
-          className={`h-full w-[320px] border-l border-[#333] bg-[#0e0e0e] ${
-            showChat ? "block" : "hidden"
-          }`}
+          className={`h-full w-[320px] border-l border-[#333] bg-[#0e0e0e] ${showChat ? "block" : "hidden"
+            }`}
         >
           <div className="flex h-full flex-col" ref={sidebarRef}>
             <AiSearchPanel
@@ -325,7 +331,7 @@ const RoomContent = () => {
 // Local 마이크 무음 10초 지속 시 자동 음소거 (500ms interval, fftSize 256)
 const AutoMuteOnSilence = () => {
   const room = useRoomContext();
-  const timerRef = useRef<NodeJS.Timeout>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -387,11 +393,13 @@ const AutoMuteOnSilence = () => {
     peak: 0,
     smoothed: 0,
     dynamicThreshold: 0,
+    mutedSpeakingGate: 0,
     noiseFloor: 0,
     micEnabled: true,
     lkSpeaking: false,
     silenceStart: null as number | null,
     hasTrack: false,
+    publicationStates: [] as any[],
   });
 
   const cleanup = () => {
@@ -425,7 +433,7 @@ const AutoMuteOnSilence = () => {
 
     stopAnalysisTrack();
     const { analyser, ctx, analysisTrack, dataArray } = createAnalyserFromTrack(mediaTrack);
-    ctx.resume().catch(() => {});
+    ctx.resume().catch(() => { });
     audioCtxRef.current = ctx;
     analysisTrackRef.current = analysisTrack;
     analyserRef.current = analyser;
@@ -473,10 +481,10 @@ const AutoMuteOnSilence = () => {
       if (!activeAnalyser || !activeArray) return;
 
       if (audioCtxRef.current?.state === "suspended") {
-        audioCtxRef.current.resume().catch(() => {});
+        audioCtxRef.current.resume().catch(() => { });
       }
       if (meterCtxRef.current?.state === "suspended") {
-        meterCtxRef.current.resume().catch(() => {});
+        meterCtxRef.current.resume().catch(() => { });
       }
 
       activeAnalyser.getByteTimeDomainData(activeArray);
