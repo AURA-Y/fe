@@ -25,5 +25,5 @@ export const fetchReportDetailsFromS3 = async (reportId: string): Promise<Report
  */
 export const getDownloadUrl = (fileUrl: string): string => {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/restapi";
-  return `${baseUrl}/reports/download?fileUrl=${encodeURIComponent(fileUrl)}`;
+  return `${baseUrl}/restapi/reports/download?fileUrl=${encodeURIComponent(fileUrl)}`;
 };
