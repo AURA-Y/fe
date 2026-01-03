@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { createMeeting } from "@/lib/api/api.meeting";
-import { createRoomInDB } from "@/lib/api/api.room";
+import { createRoomInDB, deleteRoomFromDB } from "@/lib/api/api.room";
 import { CreateMeetingSchema } from "@/lib/schema/room/roomAIAgentSetting.schema";
 import { CreateRoomInDBParams } from "@/lib/types/room.type";
 
@@ -19,5 +19,16 @@ export const useCreateMeeting = () => {
 export const useCreateRoomInDB = () => {
   return useMutation({
     mutationFn: (params: CreateRoomInDBParams) => createRoomInDB(params),
+  });
+};
+
+/**
+ * PostgreSQL에서 Room 삭제
+ * 사용 예: const deleteRoomMutation = useDeleteRoomFromDB();
+ *          await deleteRoomMutation.mutateAsync(roomId);
+ */
+export const useDeleteRoomFromDB = () => {
+  return useMutation({
+    mutationFn: (roomId: string) => deleteRoomFromDB(roomId),
   });
 };

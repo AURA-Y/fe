@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { getReportsByIds } from "@/lib/api/api.reports";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { getReportsByIds, updateReportSummary, deleteReport } from "@/lib/api/api.reports";
 import { fetchReportDetailsFromS3 } from "@/lib/api/api.s3-reports";
 import { ReportMetadata, ReportDetails } from "@/lib/types/reports.type";
 import { errorHandler } from "@/lib/utils";
@@ -32,5 +32,28 @@ export function useReportDetails(reportId: string | undefined) {
     enabled: !!reportId,
     staleTime: 1000 * 60 * 30, // 상세 내용은 잘 안 바뀌므로 30분 캐시
     retry: 1, // 실패시 1번만 재시도
+  });
+}
+
+/**
+ * 회의록 요약 업데이트
+ * 사용 예: const updateSummaryMutation = useUpdateReportSummary();
+ *          await updateSummaryMutation.mutateAsync({ reportId, summary, roomId });
+ */
+export function useUpdateReportSummary() {
+  return useMutation({
+    mutationFn: (params: { reportId: string; summary: string; roomId?: string }) =>
+      updateReportSummary(params.reportId, params.summary, params.roomId),
+  });
+}
+
+/**
+ * 회의록 삭제
+ * 사용 예: const deleteReportMutation = useDeleteReport();
+ *          await deleteReportMutation.mutateAsync(reportId);
+ */
+export function useDeleteReport() {
+  return useMutation({
+    mutationFn: (reportId: string) => deleteReport(reportId),
   });
 }

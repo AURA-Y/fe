@@ -22,10 +22,12 @@ import {
   updateNoiseFloor,
 } from "@/lib/utils/automute.utils";
 import { useIsMaster } from "@/hooks/use-room-master";
-import { deleteRoomFromDB, getRoomInfoFromDB } from "@/lib/api/api.room";
-import { deleteReport, updateReportSummary } from "@/lib/api/api.reports";
+import { getRoomInfoFromDB } from "@/lib/api/api.room";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { useUpdateReportSummary, useDeleteReport } from "@/hooks/use-reports";
+import { useDeleteRoomFromDB } from "@/hooks/use-create-meeting";
+import { errorHandler } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -616,6 +618,9 @@ const CustomLeaveButton = ({
   const room = useRoomContext();
   const [modalStep, setModalStep] = useState<null | "summary" | "confirm">(null);
   const queryClient = useQueryClient();
+  const updateSummaryMutation = useUpdateReportSummary();
+  const deleteReportMutation = useDeleteReport();
+  const deleteRoomMutation = useDeleteRoomFromDB();
 
   const handleSummary = async () => {
     try {
@@ -627,16 +632,14 @@ const CustomLeaveButton = ({
       }
 
       // 회의록 요약 저장 + roomId 전달하여 attendees 닉네임 변환
-      await updateReportSummary(
-        roomInfo.reportId,
-        "(구현 예정) 회의록 요약을 여기에 넣을것입니다.",
-        roomId // roomId 추가: userId -> 닉네임 변환에 사용
-      );
-      console.log("회의록 요약이 저장되었습니다.");
+      await updateSummaryMutation.mutateAsync({
+        reportId: roomInfo.reportId,
+        summary: "(구현 예정) 회의록 요약을 여기에 넣을것입니다.",
+        roomId, // roomId 추가: userId -> 닉네임 변환에 사용
+      });
 
       // 회의방 삭제
-      await deleteRoomFromDB(roomId);
-      console.log("회의가 종료되었습니다.");
+      await deleteRoomMutation.mutateAsync(roomId);
 
       // React Query 캐시 무효화
       queryClient.invalidateQueries({ queryKey: ["Rooms"] });
@@ -645,8 +648,7 @@ const CustomLeaveButton = ({
       room?.disconnect();
       onDisconnected();
     } catch (error) {
-      console.error("회의록 요약 저장 실패:", error);
-      toast.error("회의록 요약 저장에 실패했습니다.");
+      errorHandler(error);
     }
   };
 
@@ -655,20 +657,17 @@ const CustomLeaveButton = ({
       // roomId로 reportId 조회
       const roomInfo = await getRoomInfoFromDB(roomId);
 
-      // reportId가 있으면 삭제
+      // reportId가 있으면 삭제 (실패해도 계속 진행)
       if (roomInfo.reportId) {
         try {
-          await deleteReport(roomInfo.reportId);
-          console.log("회의록이 삭제되었습니다.");
+          await deleteReportMutation.mutateAsync(roomInfo.reportId);
         } catch (reportError) {
-          console.warn("회의록 삭제 실패:", reportError);
           // 회의록 삭제 실패해도 계속 진행
         }
       }
 
       // 회의방 삭제
-      await deleteRoomFromDB(roomId);
-      console.log("회의가 종료되었습니다.");
+      await deleteRoomMutation.mutateAsync(roomId);
 
       // React Query 캐시 무효화 - 홈페이지에서 최신 데이터 로드하도록
       queryClient.invalidateQueries({ queryKey: ["Rooms"] });
@@ -676,8 +675,7 @@ const CustomLeaveButton = ({
       room?.disconnect();
       onDisconnected();
     } catch (error) {
-      console.error("회의 종료 실패:", error);
-      toast.error("회의 종료에 실패했습니다.");
+      errorHandler(error);
     }
   };
 
