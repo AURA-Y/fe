@@ -6,7 +6,7 @@ import { ReportMetadata, ReportDetails, FileInfo } from "@/lib/types/reports.typ
 export const getReportsByIds = async (reportIds: string[]) => {
   if (!reportIds || reportIds.length === 0) return { data: [] };
   const idsParam = reportIds.join(",");
-  return api.get<ReportMetadata[]>(`/reports/list?ids=${idsParam}`);
+  return api.get<ReportMetadata[]>(`/restapi/reports/list?ids=${idsParam}`);
 };
 
 // 파일 업로드 (S3로 프록시)
@@ -15,7 +15,7 @@ export const uploadReportFiles = async (files: File[]): Promise<FileInfo[]> => {
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
   const { data } = await api.post<{ uploadFileList: FileInfo[] }>(
-    "/reports/upload-files",
+    "/restapi/reports/upload-files",
     formData,
     {
       headers: { "Content-Type": "multipart/form-data" },
@@ -32,14 +32,14 @@ export const createReport = async (payload: {
   uploadFileList: FileInfo[];
   createdAt?: string;
 }): Promise<ReportDetails> => {
-  const { data } = await api.post<ReportDetails>("/reports", payload);
+  const { data } = await api.post<ReportDetails>("/restapi/reports", payload);
   return data;
 };
 
 // 보고서 ID를 현재 사용자에 연결
 export const assignReportToUser = async (reportId: string) => {
   const { data } = await api.post<{ roomReportIdxList: string[] }>(
-    `/reports/${reportId}/assign`
+    `/restapi/reports/${reportId}/assign`
   );
   return data.roomReportIdxList;
 };

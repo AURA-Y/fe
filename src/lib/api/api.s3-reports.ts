@@ -10,7 +10,7 @@ import { FileInfo, ReportDetails } from "@/lib/types/reports.type";
  */
 export const fetchReportDetailsFromS3 = async (reportId: string): Promise<ReportDetails> => {
   try {
-    const response = await api.get<ReportDetails>(`/reports/${reportId}/details`);
+    const response = await api.get<ReportDetails>(`/restapi/reports/${reportId}/details`);
     return response.data;
   } catch (error) {
     console.error("Error fetching report details from backend:", error);
