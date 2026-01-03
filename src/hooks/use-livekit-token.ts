@@ -2,7 +2,6 @@
 
 import { attendRoom, createRoom, deleteRoomFromDB, joinRoomInDB } from "@/lib/api/api.room";
 import { CreateRoomFormValues, JoinRoomFormValues } from "@/lib/schema/room/roomCreate.schema";
-import { AttendRoomRequest } from "@/lib/types/room.type";
 import { errorHandler } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";

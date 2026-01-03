@@ -89,14 +89,9 @@ const joinRoomInDB = async (roomId: string): Promise<RoomInfo> => {
   return data;
 };
 
-const leaveRoomInDB = async (roomId: string): Promise<RoomInfo> => {
-  const { data } = await api.post<RoomInfo>(`/restapi/rooms/${roomId}/leave`);
-  return data;
-};
-
 interface UserRoleResponse {
   isMaster: boolean;
-  role: 'master' | 'attendee';
+  role: "master" | "attendee";
 }
 
 const checkUserRole = async (roomId: string): Promise<UserRoleResponse> => {
@@ -114,6 +109,5 @@ export {
   getRoomInfoFromDB,
   deleteRoomFromDB,
   joinRoomInDB,
-  leaveRoomInDB,
   checkUserRole,
 };
