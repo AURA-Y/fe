@@ -36,6 +36,7 @@ export default function RoomPage() {
   return (
     <div className="fixed inset-0 z-50 bg-black">
       <LiveKitView
+        roomId={roomId}
         token={token}
         onDisconnected={() => {
           // 퇴장 시 리다이렉트 (새로고침 시에도 발생할 수 있음)

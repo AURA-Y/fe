@@ -1,4 +1,4 @@
-import { livekitApi } from "../utils";
+import { livekitApi, api } from "../utils";
 
 import {
   AttendRoomRequest,
@@ -34,4 +34,84 @@ const getRoomByRoomId = async (roomId: string): Promise<GetRoomResponse> => {
   return data;
 };
 
-export { createRoom, getAllRooms, attendRoom, getRoomByRoomId };
+// PostgreSQL Room Management APIs
+interface CreateRoomInDBParams {
+  roomId: string;
+  topic: string;
+  description?: string;
+  master: string;
+  attendees?: string[];
+  maxParticipants?: number;
+  token?: string;
+  livekitUrl?: string;
+  upload_File_list?: any[];
+}
+
+interface RoomInfo {
+  roomId: string;
+  createdAt: string;
+  topic: string;
+  description?: string;
+  attendees: string[];
+  maxParticipants: number;
+  master: string;
+  masterUser?: {
+    userId: string;
+    email: string;
+    nickName: string;
+  };
+}
+
+const createRoomInDB = async (params: CreateRoomInDBParams): Promise<RoomInfo> => {
+  const { data } = await api.post<RoomInfo>("/restapi/rooms", params);
+  return data;
+};
+
+const getAllRoomsFromDB = async (): Promise<RoomInfo[]> => {
+  const { data } = await api.get<RoomInfo[]>("/restapi/rooms");
+  return data;
+};
+
+const getRoomInfoFromDB = async (roomId: string): Promise<RoomInfo> => {
+  const { data } = await api.get<RoomInfo>(`/restapi/rooms/${roomId}`);
+  return data;
+};
+
+const deleteRoomFromDB = async (roomId: string): Promise<{ message: string }> => {
+  const { data } = await api.delete<{ message: string }>(`/restapi/rooms/${roomId}`);
+  return data;
+};
+
+const joinRoomInDB = async (roomId: string): Promise<RoomInfo> => {
+  const { data } = await api.post<RoomInfo>(`/restapi/rooms/${roomId}/join`);
+  return data;
+};
+
+const leaveRoomInDB = async (roomId: string): Promise<RoomInfo> => {
+  const { data } = await api.post<RoomInfo>(`/restapi/rooms/${roomId}/leave`);
+  return data;
+};
+
+interface UserRoleResponse {
+  isMaster: boolean;
+  role: 'master' | 'attendee';
+}
+
+const checkUserRole = async (roomId: string): Promise<UserRoleResponse> => {
+  const { data } = await api.get<UserRoleResponse>(`/restapi/rooms/${roomId}/role`);
+  return data;
+};
+
+export {
+  createRoom,
+  getAllRooms,
+  attendRoom,
+  getRoomByRoomId,
+  createRoomInDB,
+  getAllRoomsFromDB,
+  getRoomInfoFromDB,
+  deleteRoomFromDB,
+  joinRoomInDB,
+  leaveRoomInDB,
+  checkUserRole,
+};

@@ -10,7 +10,7 @@ import { useAuthStore } from "@/lib/store/auth.store";
 import { CreateRoomFormValues, createRoomSchema } from "@/lib/schema/room/roomCreate.schema";
 import { useEffect, useRef, useState } from "react";
 import { uploadReportFiles, createReport } from "@/lib/api/api.reports";
-import { createRoom } from "@/lib/api/api.room";
+import { createRoom, createRoomInDB } from "@/lib/api/api.room";
 import { errorHandler } from "@/lib/utils";
 import { toast } from "sonner";
 import { useUploadReportFiles, useAssignReportToUser } from "@/hooks/use-filed-setting";
@@ -116,12 +116,35 @@ export default function CreateMeetingSecondStepForm() {
         maxParticipants: formState.maxParticipants,
       });
 
+      // 5) PostgreSQL에 Room 저장 (master 필드에 userId 저장)
+      console.log("Attempting to save room to DB. User:", user);
+      if (user?.id) {
+        console.log("Creating room in DB with userId:", user.id);
+        try {
+          await createRoomInDB({
+            roomId,
+            topic: formState.roomTitle,
+            description: formState.description,
+            master: user.id,
+            attendees: [user.id],
+            maxParticipants: formState.maxParticipants,
+            token,
+            upload_File_list: uploadFileList,
+          });
+          console.log("Room saved to DB successfully");
+        } catch (dbError) {
+          console.error("Failed to save room to DB:", dbError);
+        }
+      } else {
+        console.error("Cannot save room to DB: user.id is missing", user);
+      }
+
       sessionStorage.setItem(`room_${roomId}_nickname`, formState.user);
       if (token) {
         sessionStorage.setItem(`room_${roomId}_token`, token);
       }
 
-      toast.success("회의 생성 + 보고서(목데이터) 저장이 완료되었습니다.");
+      console.log("회의 생성 + 보고서 저장이 완료되었습니다.");
       router.push(`/room/${roomId}`);
     } catch (error) {
       errorHandler(error);

@@ -9,7 +9,21 @@ import { format } from "date-fns";
 import { useJoinRoom } from "@/hooks/use-livekit-token";
 import { useAuthStore } from "@/lib/store/auth.store";
 
-export default function RoomCard({ room }: { room: Room }) {
+interface RoomInfo {
+  roomId: string;
+  topic: string;
+  description?: string;
+  maxParticipants: number;
+  createdAt: string;
+  master: string;
+  masterUser?: {
+    userId: string;
+    email: string;
+    nickName: string;
+  };
+}
+
+export default function RoomCard({ room }: { room: Room | RoomInfo }) {
   const { mutate: joinRoom, isPending } = useJoinRoom();
   const user = useAuthStore((state) => state.user);
 
@@ -37,16 +51,18 @@ export default function RoomCard({ room }: { room: Room }) {
         </div>
 
         <h3 className="mb-2 line-clamp-1 text-lg font-bold text-slate-900 dark:text-slate-100">
-          {room.roomTitle}
+          {"roomTitle" in room ? room.roomTitle : room.topic}
         </h3>
         <p className="mb-6 line-clamp-2 h-10 text-sm text-slate-500">
-          {room.description || "설명이 없는 회의방입니다."}
+          {"description" in room && room.description ? room.description : "설명이 없는 회의방입니다."}
         </p>
 
         <div className="flex items-center justify-between border-t border-slate-50 pt-4 dark:border-slate-800">
           <div className="flex flex-col">
-            <span className="text-[11px] tracking-wider text-slate-400 uppercase">Host</span>
-            <span className="text-sm font-medium text-slate-700">
+            <span className="text-[11px] tracking-wider text-slate-400 uppercase">
+              {"masterUser" in room && room.masterUser ? room.masterUser.nickName : "Host"}
+            </span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-400">
               {format(new Date(room.createdAt), "yyyy.MM.dd")}
             </span>
           </div>
