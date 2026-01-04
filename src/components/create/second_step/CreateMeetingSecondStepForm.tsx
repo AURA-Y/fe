@@ -10,7 +10,7 @@ import { useAuthStore } from "@/lib/store/auth.store";
 import { CreateRoomFormValues, createRoomSchema } from "@/lib/schema/room/roomCreate.schema";
 import { useEffect, useRef, useState } from "react";
 import { uploadReportFiles, createReport } from "@/lib/api/api.reports";
-import { createRoom } from "@/lib/api/api.room";
+import { createRoom, createRoomInDB } from "@/lib/api/api.room";
 import { errorHandler } from "@/lib/utils";
 import { toast } from "sonner";
 import { useUploadReportFiles, useAssignReportToUser } from "@/hooks/use-filed-setting";

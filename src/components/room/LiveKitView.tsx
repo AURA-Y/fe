@@ -1,34 +1,21 @@
 "use client";
+
+/**
+ * [LiveKitView.tsx]
+ * LiveKit 화상 회의의 메인 뷰 컴포넌트입니다.
+ * Room 연결, 비디오 그리드(VideoGrid), 채팅(Chat), AI 검색 패널(AiSearchPanel),
+ * 그리고 자동 음소거(AutoMuteOnSilence)와 같은 핵심 기능을 통합 관리합니다.
+ */
 import "@livekit/components-styles";
-import { useEffect, useRef, useState } from "react";
+import "@livekit/components-styles";
 import { env } from "@/env.mjs";
 import {
   LiveKitRoom,
-  RoomAudioRenderer,
-  ControlBar,
-  Chat,
   LayoutContextProvider,
-  useLayoutContext,
-  useRoomContext,
 } from "@livekit/components-react";
-import { VideoPresets, RoomOptions, RoomEvent, Track } from "livekit-client";
-import { VideoGrid } from "./VideoGrid";
-import { toast } from "sonner";
-import {
-  computeLevel,
-  createAnalyserFromTrack,
-  detectCloseFace,
-  loadFaceDetector,
-  updateNoiseFloor,
-} from "@/lib/utils/automute.utils";
-import { useIsMaster } from "@/hooks/use-room-master";
-import { getRoomInfoFromDB } from "@/lib/api/api.room";
-import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
-import { useUpdateReportSummary, useDeleteReport } from "@/hooks/use-reports";
-import { useDeleteRoomFromDB } from "@/hooks/use-create-meeting";
-import { errorHandler } from "@/lib/utils";
-import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { VideoPresets, RoomOptions } from "livekit-client";
+import { RoomContent } from "../livekitview/RoomContent";
+import { AutoMuteOnSilence } from "../livekitview/AutoMuteOnSilence";
 
 // VP9 최고 화질 설정
 const roomOptions: RoomOptions = {
@@ -881,6 +868,12 @@ const CustomLeaveButton = ({
   );
 };
 
+/**
+ * [메인 컴포넌트: LiveKitView]
+ * LiveKit의 LiveKitRoom 컨텍스트를 제공하는 최상위 래퍼입니다.
+ * - 토큰(token)과 서버 URL(serverUrl)을 사용하여 Room에 연결합니다.
+ * - 연결 상태에 따라 하위 컴포넌트(RoomContent, AutoMuteOnSilence 등)를 렌더링합니다.
+ */
 const LiveKitView = ({ roomId, token, onDisconnected }: LiveKitViewProps) => {
   return (
     <LiveKitRoom

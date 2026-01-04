@@ -37,7 +37,7 @@ export default function RoomCard({ room }: { room: RoomInfo }) {
           {room.topic}
         </h3>
         <p className="mb-6 line-clamp-2 h-10 text-sm text-slate-500">
-          {room.description || "설명이 없는 회의방입니다."}
+          {"description" in room && room.description ? room.description : "설명이 없는 회의방입니다."}
         </p>
 
         <div className="flex items-center justify-between border-t border-slate-50 pt-4 dark:border-slate-800">
