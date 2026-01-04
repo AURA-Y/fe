@@ -215,9 +215,3 @@ body::-webkit-scrollbar-thumb:hover {
     @apply text-2xl font-semibold tracking-tight; /* 서브 제목 스타일 */
   }
 }
-
-/* 6. LiveKit ControlBar 커스텀 스타일 */
-/* ControlBar 상단 border 제거 */
-.lk-control-bar {
-  border-top: none !important;
-}
