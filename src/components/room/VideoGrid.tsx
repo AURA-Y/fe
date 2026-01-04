@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { VideoTrack, AudioTrack, useParticipants, useTracks } from "@livekit/components-react";
 import { Track } from "livekit-client";
+import LipSyncFace from "./LipSyncFace";
 
 export function VideoGrid() {
   const participants = useParticipants();
@@ -77,6 +78,10 @@ export function VideoGrid() {
 
             const hasVideo = videoPublication?.isSubscribed && !videoPublication?.isMuted;
             const isMuted = audioPublication?.isMuted;
+            const mediaTrack = (audioPublication?.track as any)?.mediaStreamTrack as
+              | MediaStreamTrack
+              | undefined;
+            const displayName = participant.name || participant.identity;
 
             return (
               <motion.div
@@ -103,6 +108,8 @@ export function VideoGrid() {
                     className="h-full w-full object-cover"
                     style={{ transform: "scaleX(-1)" }}
                   />
+                ) : mediaTrack ? (
+                  <LipSyncFace name={displayName} track={mediaTrack} />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-[#2a2a2a] text-4xl font-bold text-white">
                     {participant.name?.[0]?.toUpperCase() ||

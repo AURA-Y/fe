@@ -13,6 +13,12 @@ import {
 } from "@livekit/components-react";
 import { VideoPresets, RoomOptions, RoomEvent, Track } from "livekit-client";
 import { VideoGrid } from "./VideoGrid";
+import {
+  computeLevel,
+  createAnalyserFromTrack,
+  detectCloseFace,
+  updateNoiseFloor,
+} from "@/lib/utils/automute.utils";
 
 
 // VP9 최고 화질 설정
