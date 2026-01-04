@@ -63,13 +63,38 @@ interface LiveKitViewProps {
   onDisconnected: () => void;
 }
 
+interface SearchResult {
+  title: string;
+  url: string;
+  content: string;
+  address?: string;
+  roadAddress?: string;
+}
+
+interface RouteInfo {
+  origin: { lng: string; lat: string };
+  destination: { lng: string; lat: string; name: string };
+  distance: number;
+  durationMs: number;
+  directionUrl?: string;
+}
+
 interface AiMessage {
   id: string;
   text: string;
-  minutes: { source: string; snippet: string }[];
+  results?: SearchResult[];
+  route?: RouteInfo;
 }
 
-const AiSearchPanel = ({ height }: { height: number }) => {
+const AiSearchPanel = ({
+  height,
+  onOpenMap,
+  onShareMap,
+}: {
+  height: number;
+  onOpenMap?: (url?: string) => void;
+  onShareMap?: (url?: string) => void;
+}) => {
   const room = useRoomContext();
   const [messages, setMessages] = useState<AiMessage[]>([]);
 
@@ -80,21 +105,36 @@ const AiSearchPanel = ({ height }: { height: number }) => {
       let parsed: any = null;
       try {
         const text = new TextDecoder().decode(payload);
+        console.log('[AI Search Panel] Raw data received:', text);
         parsed = JSON.parse(text);
-      } catch {
+        console.log('[AI Search Panel] Parsed data:', parsed);
+      } catch (e) {
+        console.error('[AI Search Panel] Failed to parse data:', e);
         return;
       }
 
-      if (parsed?.type !== "search_answer" || !parsed?.text) return;
+      if (parsed?.type !== "search_answer") {
+        console.log('[AI Search Panel] Ignoring non-search data, type:', parsed?.type);
+        return;
+      }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString() + Math.random(),
-          text: parsed.text,
-          minutes: Array.isArray(parsed.minutes) ? parsed.minutes : [],
-        },
-      ]);
+      if (!parsed?.text) {
+        console.log('[AI Search Panel] No text in search answer');
+        return;
+      }
+
+      console.log('[AI Search Panel] Adding message with results:', parsed.results);
+      console.log('[AI Search Panel] Route data:', parsed.route);
+
+      const newMessage = {
+        id: Date.now().toString() + Math.random(),
+        text: parsed.text,
+        results: Array.isArray(parsed.results) ? parsed.results : [],
+        route: parsed.route || undefined,
+      };
+
+      setMessages((prev) => [...prev, newMessage]);
+
     };
 
     room.on(RoomEvent.DataReceived, onData);
@@ -114,15 +154,63 @@ const AiSearchPanel = ({ height }: { height: number }) => {
       ) : (
         <div className="space-y-3">
           {messages.map((msg) => (
-            <div key={msg.id} className="rounded-md bg-[#151515] p-3">
-              <p className="text-sm whitespace-pre-wrap text-slate-100">{msg.text}</p>
-              {msg.minutes.length > 0 && (
-                <div className="mt-2 text-xs text-slate-400">
-                  {msg.minutes.map((m) => (
-                    <p key={`${msg.id}-${m.source}`}>
-                      [{m.source}] {m.snippet}
-                    </p>
+            <div key={msg.id} className="space-y-2">
+              <div className="rounded-md bg-[#1a1a1a] border border-[#2a2a2a] p-3">
+                <p className="whitespace-pre-wrap text-sm text-slate-100">{msg.text}</p>
+              </div>
+              {msg.results && msg.results.length > 0 && (
+                <div className="space-y-2">
+                  {msg.results.map((result, idx) => (
+                    <a
+                      key={`${msg.id}-${idx}`}
+                      href={result.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-md bg-[#151515] border border-[#252525] p-3 hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-colors"
+                    >
+                      <div className="flex items-start gap-2">
+                        <svg
+                          className="w-4 h-4 mt-0.5 text-blue-400 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                          />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-blue-400 mb-1 truncate">
+                            {result.title}
+                          </p>
+                          <p className="text-xs text-slate-400 line-clamp-2">
+                            {result.content}
+                          </p>
+                        </div>
+                      </div>
+                    </a>
                   ))}
+                </div>
+              )}
+              {msg.route?.directionUrl && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onOpenMap?.(msg.route?.directionUrl)}
+                    className="rounded-md border border-[#2a2a2a] bg-[#141414] px-3 py-1.5 text-xs text-slate-200 hover:border-[#3a3a3a] hover:bg-[#1a1a1a]"
+                  >
+                    지도 열기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onShareMap?.(msg.route?.directionUrl)}
+                    className="rounded-md border border-[#2a2a2a] bg-[#141414] px-3 py-1.5 text-xs text-slate-200 hover:border-[#3a3a3a] hover:bg-[#1a1a1a]"
+                  >
+                    지도 탭 공유
+                  </button>
                 </div>
               )}
             </div>
@@ -145,6 +233,8 @@ const RoomContent = ({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const [panelHeight, setPanelHeight] = useState(160);
+  const room = useRoomContext();
+  const activeShareRef = useRef<MediaStreamTrack | null>(null);
 
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
@@ -171,6 +261,53 @@ const RoomContent = ({
     };
   }, []);
 
+  const normalizeDirectionsUrl = (url: string) => {
+    if (url.includes("/p/directions/")) {
+      return url.replace("/p/directions/", "/v5/directions/");
+    }
+    return url;
+  };
+
+  const handleOpenMap = (url?: string) => {
+    if (!url) return;
+    window.open(normalizeDirectionsUrl(url), "_blank", "noopener,noreferrer");
+  };
+
+  const handleShareMap = async (url?: string) => {
+    if (!room) return;
+    if (!url) return;
+
+    try {
+      // 새 탭 열기 (사용자 제스처 내)
+      const normalizedUrl = normalizeDirectionsUrl(url);
+      window.open(normalizedUrl, "_blank", "noopener,noreferrer");
+
+      // 브라우저 탭 공유 시작
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const videoTrack = stream.getVideoTracks()[0];
+      if (!videoTrack) return;
+
+      activeShareRef.current = videoTrack;
+      await room.localParticipant.publishTrack(videoTrack, {
+        source: Track.Source.ScreenShare,
+        name: "navigation-map-tab",
+        simulcast: false,
+      });
+
+      videoTrack.addEventListener("ended", async () => {
+        const pub = room.localParticipant.getTrackPublications().find(
+          (p) => p.trackSid === videoTrack.id || p.track === videoTrack
+        );
+        if (pub?.track) {
+          await room.localParticipant.unpublishTrack(pub.track);
+        }
+        activeShareRef.current = null;
+      });
+    } catch (error) {
+      console.error("[Navigation Share] Tab share failed:", error);
+    }
+  };
+
   return (
     <>
       <div className="flex flex-1 overflow-hidden">
@@ -181,7 +318,11 @@ const RoomContent = ({
           }`}
         >
           <div className="flex h-full flex-col" ref={sidebarRef}>
-            <AiSearchPanel height={panelHeight} />
+            <AiSearchPanel
+              height={panelHeight}
+              onOpenMap={handleOpenMap}
+              onShareMap={handleShareMap}
+            />
             <div
               className="h-2 cursor-row-resize bg-[#111] hover:bg-[#1a1a1a]"
               onMouseDown={() => {
@@ -205,6 +346,7 @@ const RoomContent = ({
         </div>
       </div>
       <RoomAudioRenderer />
+
     </>
   );
 };
