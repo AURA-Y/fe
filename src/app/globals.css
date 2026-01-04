@@ -170,7 +170,6 @@ body::-webkit-scrollbar-thumb:hover {
   background-clip: content-box;
 }
 
-
 /* 4. Tailwind 테마 확장 (v4 방식) */
 /* 상단에서 정의한 CSS 변수들을 Tailwind의 유틸리티 클래스(bg-primary 등)로 연결합니다. */
 @theme inline {

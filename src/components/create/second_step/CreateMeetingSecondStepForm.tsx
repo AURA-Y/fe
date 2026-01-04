@@ -14,12 +14,14 @@ import { createRoom } from "@/lib/api/api.room";
 import { errorHandler } from "@/lib/utils";
 import { toast } from "sonner";
 import { useUploadReportFiles, useAssignReportToUser } from "@/hooks/use-filed-setting";
+import { useCreateRoomInDB } from "@/hooks/use-create-meeting";
 
 export default function CreateMeetingSecondStepForm() {
   const router = useRouter();
   const { user, accessToken, setAuth } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const uploadMutation = useUploadReportFiles();
+  const createRoomMutation = useCreateRoomInDB();
   const [assignReportId, setAssignReportId] = useState<string | null>(null);
   const assignQuery = useAssignReportToUser(assignReportId || undefined, !!assignReportId);
   const lastAssignedIdRef = useRef<string | null>(null);
@@ -126,12 +128,29 @@ export default function CreateMeetingSecondStepForm() {
         maxParticipants: formState.maxParticipants,
       });
 
+      // 5) PostgreSQL에 Room 저장 (master 필드에 userId 저장)
+      if (!user?.id) {
+        throw new Error("사용자 정보가 없습니다. 로그인 후 다시 시도해주세요.");
+      }
+
+      await createRoomMutation.mutateAsync({
+        roomId,
+        topic: formState.roomTitle,
+        description: formState.description,
+        master: user.id,
+        reportId: details.reportId,
+        attendees: [user.id],
+        maxParticipants: formState.maxParticipants,
+        token,
+        upload_File_list: uploadFileList,
+      });
+
       sessionStorage.setItem(`room_${roomId}_nickname`, formState.user);
       if (token) {
         sessionStorage.setItem(`room_${roomId}_token`, token);
       }
 
-      toast.success("회의 생성 + 보고서(목데이터) 저장이 완료되었습니다.");
+      console.log("회의 생성 + 보고서 저장이 완료되었습니다.");
       router.push(`/room/${roomId}`);
     } catch (error) {
       errorHandler(error);

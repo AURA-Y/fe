@@ -1,6 +1,6 @@
 "use client";
 
-import { Room } from "@/lib/types/room.type";
+import { RoomInfo } from "@/lib/types/room.type";
 import { Users, Calendar, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,14 +9,11 @@ import { format } from "date-fns";
 import { useJoinRoom } from "@/hooks/use-livekit-token";
 import { useAuthStore } from "@/lib/store/auth.store";
 
-export default function RoomCard({ room }: { room: Room }) {
+export default function RoomCard({ room }: { room: RoomInfo }) {
   const { mutate: joinRoom, isPending } = useJoinRoom();
   const user = useAuthStore((state) => state.user);
 
   const handleJoin = () => {
-    // 로그인 안되어 있을 때 처리 로직 필요 (예: 모달 띄우기)
-    // 현재는 김철수 하드코딩 되어있던 부분을 실제 유저 닉네임 유무에 따라 처리하도록 변경 필요하지만
-    // 일단 로그인된 유저가 있다면 그 이름을 사용하도록 수정
     joinRoom({
       room: room.roomId,
       user: user?.nickName || "Guest",
@@ -37,7 +34,7 @@ export default function RoomCard({ room }: { room: Room }) {
         </div>
 
         <h3 className="mb-2 line-clamp-1 text-lg font-bold text-slate-900 dark:text-slate-100">
-          {room.roomTitle}
+          {room.topic}
         </h3>
         <p className="mb-6 line-clamp-2 h-10 text-sm text-slate-500">
           {room.description || "설명이 없는 회의방입니다."}
@@ -45,8 +42,10 @@ export default function RoomCard({ room }: { room: Room }) {
 
         <div className="flex items-center justify-between border-t border-slate-50 pt-4 dark:border-slate-800">
           <div className="flex flex-col">
-            <span className="text-[11px] tracking-wider text-slate-400 uppercase">Host</span>
-            <span className="text-sm font-medium text-slate-700">
+            <span className="text-[11px] tracking-wider text-slate-400 uppercase">
+              {room.masterUser?.nickName || "Host"}
+            </span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-400">
               {format(new Date(room.createdAt), "yyyy.MM.dd")}
             </span>
           </div>

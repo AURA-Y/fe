@@ -38,12 +38,12 @@ export default function HomePage() {
   return (
     <div className="min-h-screen w-full bg-slate-50 p-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div className="mx-auto max-w-5xl space-y-8">
-        <p className="text-2xl font-bold">전체 회의방 ({rooms?.total ?? 0})</p>
+        <p className="text-2xl font-bold">전체 회의방 ({rooms?.length ?? 0})</p>
 
         {/* 방 목록 그리드 */}
-        {rooms?.rooms && rooms.rooms.length > 0 ? (
+        {rooms && rooms.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {rooms.rooms.map((room) => (
+            {rooms.map((room) => (
               <RoomCard key={room.roomId} room={room} />
             ))}
           </div>

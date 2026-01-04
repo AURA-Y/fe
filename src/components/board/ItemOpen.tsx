@@ -58,7 +58,6 @@ const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
       errorHandler(error);
     },
     onSuccess: (_data, variables) => {
-      toast.success("회의록을 삭제했습니다.");
       if (user && accessToken) {
         const updatedList = (user.roomReportIdxList || []).filter((id) => id !== variables);
         setAuth({ ...user, roomReportIdxList: updatedList } as any, accessToken);
@@ -101,7 +100,7 @@ const ItemOpen = ({ selected, onClose }: ItemOpenProps) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 rounded-full border border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50 hover:border-slate-300"
+                      className="h-10 w-10 rounded-full border border-slate-200 bg-white text-slate-800 shadow-sm hover:border-slate-300 hover:bg-slate-50"
                       onClick={() => {
                         if (deleteMutation.isPending) return;
                         const ok = window.confirm("이 회의록을 삭제하시겠습니까?");

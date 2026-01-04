@@ -57,3 +57,38 @@ interface GetRoomResponse {
 }
 
 export type { GetRoomResponse };
+
+// PostgreSQL Room Management Types
+export interface CreateRoomInDBParams {
+  roomId: string;
+  topic: string;
+  description?: string;
+  master: string;
+  reportId?: string;
+  attendees?: string[];
+  maxParticipants?: number;
+  token?: string;
+  livekitUrl?: string;
+  upload_File_list?: any[];
+}
+
+export interface RoomInfo {
+  roomId: string;
+  createdAt: string;
+  topic: string;
+  description?: string;
+  attendees: string[];
+  maxParticipants: number;
+  master: string;
+  reportId?: string;
+  masterUser?: {
+    userId: string;
+    email: string;
+    nickName: string;
+  };
+}
+
+export interface UserRoleResponse {
+  isMaster: boolean;
+  role: "master" | "attendee";
+}

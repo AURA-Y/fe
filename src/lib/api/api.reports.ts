@@ -42,7 +42,10 @@ const presignPart = async (params: {
   partNumber: number;
   fileType: string;
 }): Promise<PresignPartResponse> => {
-  const { data } = await api.post<PresignPartResponse>("/restapi/reports/multipart/presign", params);
+  const { data } = await api.post<PresignPartResponse>(
+    "/restapi/reports/multipart/presign",
+    params
+  );
   return data;
 };
 
@@ -141,6 +144,11 @@ export const assignReportToUser = async (reportId: string) => {
     `/restapi/reports/${reportId}/assign`
   );
   return data.roomReportIdxList;
+};
+
+// 보고서 요약 업데이트
+export const updateReportSummary = async (reportId: string, summary: string, roomId?: string) => {
+  await api.patch(`/restapi/reports/${reportId}/summary`, { summary, roomId });
 };
 
 // 보고서 삭제

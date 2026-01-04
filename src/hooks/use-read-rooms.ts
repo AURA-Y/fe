@@ -1,11 +1,11 @@
-import { getAllRooms, getRoomByRoomId } from "@/lib/api/api.room";
+import { getAllRooms, getRoomByRoomId, getAllRoomsFromDB } from "@/lib/api/api.room";
 import { GetAllRoomsResponse, GetRoomResponse } from "@/lib/types/room.type";
 import { useQuery } from "@tanstack/react-query";
 
 export function useAllReadRooms() {
-  return useQuery<GetAllRoomsResponse>({
+  return useQuery({
     queryKey: ["Rooms"],
-    queryFn: getAllRooms,
+    queryFn: getAllRoomsFromDB,
     //인자가 없을때,
     staleTime: 1000 * 60 * 3,
   });
