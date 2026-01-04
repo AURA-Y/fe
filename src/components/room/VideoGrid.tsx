@@ -69,10 +69,7 @@ export function VideoGrid() {
         </div>
       )}
 
-      <motion.div
-        layout
-        className="flex flex-1 flex-wrap content-center items-center justify-center gap-4 p-4"
-    <div className="flex flex-1 items-center justify-center overflow-y-auto p-4 scrollbar-hide">
+
       <motion.div
         layout
         className="flex h-full w-full flex-wrap content-center items-center justify-center gap-6 p-4"
