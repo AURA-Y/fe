@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRoomContext } from "@livekit/components-react";
-import { Track } from "livekit-client";
+import { Track, LocalTrack } from "livekit-client";
 import { env } from "@/env.mjs";
 
 interface RouteInfo {
@@ -169,11 +169,7 @@ export const NavigationMapShare = ({ route, onClose }: NavigationMapShareProps) 
             maxFramerate: 30,
           },
           simulcast: false,
-          // 명시적으로 dimensions 지정
-          dimensions: {
-            width: canvas.width,
-            height: canvas.height,
-          },
+
         });
 
         console.log('[Navigation Share] Screen share track published successfully');
@@ -217,7 +213,7 @@ export const NavigationMapShare = ({ route, onClose }: NavigationMapShareProps) 
         );
 
         if (screenShareTrack) {
-          await room.localParticipant.unpublishTrack(screenShareTrack.track!);
+          await room.localParticipant.unpublishTrack(screenShareTrack.track! as LocalTrack);
           console.log('[Navigation Share] Screen share track unpublished');
         }
 

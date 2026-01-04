@@ -6,16 +6,36 @@
  * Room 연결, 비디오 그리드(VideoGrid), 채팅(Chat), AI 검색 패널(AiSearchPanel),
  * 그리고 자동 음소거(AutoMuteOnSilence)와 같은 핵심 기능을 통합 관리합니다.
  */
-import "@livekit/components-styles";
+import { useEffect, useState, useRef } from "react";
 import "@livekit/components-styles";
 import { env } from "@/env.mjs";
 import {
   LiveKitRoom,
   LayoutContextProvider,
+  RoomAudioRenderer,
+  ControlBar,
+  Chat,
+  useLayoutContext,
+  useRoomContext,
 } from "@livekit/components-react";
-import { VideoPresets, RoomOptions } from "livekit-client";
-import { RoomContent } from "../livekitview/RoomContent";
-import { AutoMuteOnSilence } from "../livekitview/AutoMuteOnSilence";
+import { VideoPresets, RoomOptions, RoomEvent, Track, LocalTrack } from "livekit-client";
+import { VideoGrid } from "./VideoGrid";
+import { toast } from "sonner";
+import {
+  computeLevel,
+  createAnalyserFromTrack,
+  detectCloseFace,
+  loadFaceDetector,
+  updateNoiseFloor,
+} from "@/lib/utils/automute.utils";
+import { useIsMaster } from "@/hooks/use-room-master";
+import { getRoomInfoFromDB } from "@/lib/api/api.room";
+import { useQueryClient } from "@tanstack/react-query";
+import { useUpdateReportSummary, useDeleteReport } from "@/hooks/use-reports";
+import { useDeleteRoomFromDB } from "@/hooks/use-create-meeting";
+import { errorHandler } from "@/lib/utils";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+
 
 // VP9 최고 화질 설정
 const roomOptions: RoomOptions = {
@@ -283,10 +303,10 @@ const RoomContent = ({
 
       videoTrack.addEventListener("ended", async () => {
         const pub = room.localParticipant.getTrackPublications().find(
-          (p) => p.trackSid === videoTrack.id || p.track === videoTrack
+          (p) => p.trackSid === videoTrack.id || p.track?.mediaStreamTrack === videoTrack
         );
         if (pub?.track) {
-          await room.localParticipant.unpublishTrack(pub.track);
+          await room.localParticipant.unpublishTrack(pub.track as LocalTrack);
         }
         activeShareRef.current = null;
       });
