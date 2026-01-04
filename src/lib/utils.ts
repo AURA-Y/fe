@@ -81,6 +81,17 @@ export const calculateTotalSelectedCount = (
 
 export const errorHandler = (error: unknown) => {
   if (axios.isAxiosError(error)) {
+    const errorMessage = error.response?.data?.message || "요청 처리 중 문제가 발생했습니다.";
+    toast.error(errorMessage);
+    return;
+  }
+  console.error("Unknown Error : ", error);
+  toast.error("알 수 없는 오류가 발생했습니다.");
+};
+
+
+export const errorLiveKitHandler = (error: unknown) => {
+  if (axios.isAxiosError(error)) {
     // 410 Gone: LiveKit 방 자동 삭제 (5분 emptyTimeout)
     if (error.response?.status === 410) {
       toast.error("회의방이 종료되었습니다.");
