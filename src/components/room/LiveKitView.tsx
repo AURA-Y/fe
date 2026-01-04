@@ -11,31 +11,11 @@ import "@livekit/components-styles";
 import { env } from "@/env.mjs";
 import {
   LiveKitRoom,
-  RoomAudioRenderer,
-  ControlBar,
-  Chat,
   LayoutContextProvider,
-  useLayoutContext,
-  useRoomContext,
 } from "@livekit/components-react";
-import { VideoPresets, RoomOptions, RoomEvent, Track } from "livekit-client";
-import { VideoGrid } from "./VideoGrid";
-import { toast } from "sonner";
-import {
-  computeLevel,
-  createAnalyserFromTrack,
-  detectCloseFace,
-  loadFaceDetector,
-  updateNoiseFloor,
-} from "@/lib/utils/automute.utils";
-import { useIsMaster } from "@/hooks/use-room-master";
-import { getRoomInfoFromDB } from "@/lib/api/api.room";
-import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
-import { useUpdateReportSummary, useDeleteReport } from "@/hooks/use-reports";
-import { useDeleteRoomFromDB } from "@/hooks/use-create-meeting";
-import { errorHandler } from "@/lib/utils";
-import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { VideoPresets, RoomOptions } from "livekit-client";
+import { RoomContent } from "../livekitview/RoomContent";
+import { AutoMuteOnSilence } from "../livekitview/AutoMuteOnSilence";
 
 // VP9 최고 화질 설정
 const roomOptions: RoomOptions = {
