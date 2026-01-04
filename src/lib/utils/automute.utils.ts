@@ -58,7 +58,7 @@ export const loadFaceDetector = async (
       const detector = await vision.FaceDetector.createFromOptions(filesetResolver, {
         baseOptions: {
           modelAssetPath:
-            "https://storage.googleapis.com/mediapipe-models/face_detector/short_range/float16/1/face_detector_short_range.tflite",
+            "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
         },
         runningMode: "IMAGE",
       });
