@@ -5,6 +5,8 @@ import LiveKitView from "@/components/room/LiveKitView";
 import { useRouter, useParams } from "next/navigation";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { toast } from "sonner";
+import { requestMediaPermissions } from "@/lib/utils/media.utils";
+import { Loader2 } from "lucide-react";
 
 export default function RoomPage() {
   const router = useRouter();
@@ -42,23 +44,16 @@ export default function RoomPage() {
     }
 
     // 카메라/마이크 권한 먼저 요청
-    const requestMediaPermissions = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
+    const handleMediaPermissions = async () => {
+      const granted = await requestMediaPermissions();
 
-        // 권한 확인용 스트림 즉시 종료
-        stream.getTracks().forEach((track) => track.stop());
-
+      if (granted) {
         // 권한 승인 → LiveKit 연결 진행
         setToken(storedToken);
         setPermissionGranted(true);
         setIsLoading(false);
-      } catch (error) {
+      } else {
         // 권한 거부 또는 장치 없음
-        console.error("미디어 권한 에러:", error);
         toast.error("카메라/마이크 권한이 필요합니다.", {
           description: "브라우저 설정에서 권한을 허용해주세요.",
         });
@@ -68,17 +63,14 @@ export default function RoomPage() {
       }
     };
 
-    requestMediaPermissions();
+    handleMediaPermissions();
   }, [roomId, router, user, accessToken, isHydrated]);
 
-  // 로딩 중이거나 권한 없으면 빈 화면
+  // 로딩 중이거나 권한 없으면 로딩 스피너
   if (isLoading || !token || !permissionGranted) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
-        <div className="text-center text-white">
-          <div className="mb-4 text-lg">카메라/마이크 권한 확인 중...</div>
-          <div className="text-sm text-gray-400">브라우저 팝업을 확인해주세요</div>
-        </div>
+        <Loader2 className="h-16 w-16 animate-spin text-gray-400" />
       </div>
     );
   }

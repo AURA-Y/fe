@@ -28,16 +28,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useUpdateReportSummary, useDeleteReport } from "@/hooks/use-reports";
 import { useDeleteRoomFromDB } from "@/hooks/use-create-meeting";
 import { errorHandler } from "@/lib/utils";
-import { motion } from "framer-motion";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 // VP9 최고 화질 설정
 const roomOptions: RoomOptions = {
@@ -695,70 +686,46 @@ const CustomLeaveButton = ({
   return (
     <>
       {/* 요약 모달 */}
-      <Dialog open={modalStep === "summary"} onOpenChange={(open) => !open && setModalStep(null)}>
-        <DialogContent className="sm:max-w-md">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-          >
-            <DialogHeader>
-              <DialogTitle className="text-center text-xl">회의록 요약</DialogTitle>
-              <DialogDescription className="pt-4 text-center">
-                회의록을 요약하시겠습니까?
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-6 flex gap-2 sm:justify-center">
-              <Button
-                onClick={handleSummary}
-                className="flex items-center justify-center rounded-full bg-blue-600 px-6 font-bold text-white hover:bg-blue-700"
-              >
-                요약
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setModalStep("confirm")}
-                className="flex items-center justify-center rounded-full px-6 font-bold"
-              >
-                회의 나가기
-              </Button>
-            </DialogFooter>
-          </motion.div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        isOpen={modalStep === "summary"}
+        onOpenChange={(open) => !open && setModalStep(null)}
+        title="회의록 요약"
+        description="회의록을 요약하시겠습니까?"
+        buttons={[
+          {
+            label: "요약",
+            onClick: handleSummary,
+            className: "flex items-center justify-center rounded-full bg-blue-600 px-6 font-bold text-white hover:bg-blue-700",
+          },
+          {
+            label: "회의 나가기",
+            onClick: () => setModalStep("confirm"),
+            variant: "outline",
+            className: "flex items-center justify-center rounded-full px-6 font-bold",
+          },
+        ]}
+      />
 
       {/* 회의 종료 확인 모달 */}
-      <Dialog open={modalStep === "confirm"} onOpenChange={(open) => !open && setModalStep(null)}>
-        <DialogContent className="sm:max-w-md">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-          >
-            <DialogHeader>
-              <DialogTitle className="text-center text-xl">회의 종료</DialogTitle>
-              <DialogDescription className="pt-4 text-center">
-                회의를 종료하시겠습니까?
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="mt-6 flex gap-2 sm:justify-center">
-              <Button
-                onClick={handleEndMeeting}
-                className="flex items-center justify-center rounded-full bg-red-600 px-6 font-bold text-white hover:bg-red-700"
-              >
-                회의 종료
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleLeaveMeeting}
-                className="flex items-center justify-center rounded-full px-6 font-bold"
-              >
-                회의 나가기
-              </Button>
-            </DialogFooter>
-          </motion.div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        isOpen={modalStep === "confirm"}
+        onOpenChange={(open) => !open && setModalStep(null)}
+        title="회의 종료"
+        description="회의를 종료하시겠습니까?"
+        buttons={[
+          {
+            label: "회의 종료",
+            onClick: handleEndMeeting,
+            className: "flex items-center justify-center rounded-full bg-red-600 px-6 font-bold text-white hover:bg-red-700",
+          },
+          {
+            label: "회의 나가기",
+            onClick: handleLeaveMeeting,
+            variant: "outline",
+            className: "flex items-center justify-center rounded-full px-6 font-bold",
+          },
+        ]}
+      />
 
       {/* 나가기 버튼 */}
       <button
