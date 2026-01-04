@@ -110,6 +110,15 @@ const deleteRoomFromDB = async (roomId: string): Promise<{ message: string }> =>
   return data;
 };
 
+/**
+ * LiveKit 서버에서 회의방 삭제 (모든 참가자 자동 disconnect)
+ * @endpoint DELETE /api/room/:roomId
+ */
+const deleteRoomFromLiveKit = async (roomId: string): Promise<{ message: string }> => {
+  const { data } = await livekitApi.delete<{ message: string }>(`/api/room/${roomId}`);
+  return data;
+};
+
 // ============================================================================
 // Exports
 // ============================================================================
@@ -120,6 +129,7 @@ export {
   attendRoom,
   getRoomByRoomId,
   getAllRooms,
+  deleteRoomFromLiveKit,
   // PostgreSQL API
   createRoomInDB,
   joinRoomInDB,

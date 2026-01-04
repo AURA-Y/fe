@@ -3,17 +3,14 @@
 import { useState } from "react";
 import { useRoomContext } from "@livekit/components-react";
 import { useIsMaster } from "@/hooks/use-room-master";
-import { deleteRoomFromDB } from "@/lib/api/api.room";
-import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { getRoomInfoFromDB, deleteRoomFromLiveKit } from "@/lib/api/api.room";
+import { useQueryClient } from "@tanstack/react-query";
+import { useUpdateReportSummary, useDeleteReport } from "@/hooks/use-reports";
+import { useDeleteRoomFromDB } from "@/hooks/use-create-meeting";
+import { errorHandler } from "@/lib/utils";
+import { toast } from "sonner";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
-/**
- * 하단 버튼 (컨트롤 바 & 나가기)
- * [컴포넌트: CustomLeaveButton]
- * 커스텀 '나가기' 버튼입니다.
- * - 방장(Master) 권한이 있는 경우: '회의 종료(방 전체 삭제)' 가능
- * - 일반 참가자: 단순히 방에서 퇴장
- */
 export const CustomLeaveButton = ({
   roomId,
   onDisconnected,
@@ -23,16 +20,99 @@ export const CustomLeaveButton = ({
 }) => {
   const { isMaster, isLoading } = useIsMaster(roomId);
   const room = useRoomContext();
-  const [showOptions, setShowOptions] = useState(false);
+  const [modalStep, setModalStep] = useState<null | "summary" | "confirm">(null);
+  const queryClient = useQueryClient();
+  const updateSummaryMutation = useUpdateReportSummary();
+  const deleteReportMutation = useDeleteReport();
+  const deleteRoomMutation = useDeleteRoomFromDB();
 
-  const handleEndMeeting = async () => {
+  const handleSummary = async () => {
     try {
-      await deleteRoomFromDB(roomId);
-      console.log("회의가 종료되었습니다.");
+      // roomId로 reportId 조회
+      const roomInfo = await getRoomInfoFromDB(roomId);
+      if (!roomInfo.reportId) {
+        toast.error("회의록 정보를 찾을 수 없습니다.");
+        return;
+      }
+
+      // 회의록 요약 저장 + roomId 전달하여 attendees 닉네임 변환
+      try {
+        await updateSummaryMutation.mutateAsync({
+          reportId: roomInfo.reportId,
+          summary: "(구현 예정) 회의록 요약을 여기에 넣을것입니다.",
+          roomId, // roomId 추가: userId -> 닉네임 변환에 사용
+        });
+      } catch (summaryError) {
+        // 404 에러는 회의록이 이미 삭제된 경우이므로 무시하고 계속 진행
+        console.warn("Report summary update failed (report may not exist):", summaryError);
+      }
+
+      // LiveKit 서버에서 회의방 삭제 (모든 참가자 자동 disconnect)
+      try {
+        await deleteRoomFromLiveKit(roomId);
+        console.log("LiveKit room deleted successfully:", roomId);
+      } catch (livekitError: any) {
+        // 404 에러는 이미 삭제된 경우이므로 무시
+        console.error("LiveKit room deletion failed:", {
+          roomId,
+          status: livekitError?.response?.status,
+          message: livekitError?.response?.data?.message || livekitError?.message,
+          error: livekitError,
+        });
+      }
+
+      // PostgreSQL DB에서 회의방 삭제
+      await deleteRoomMutation.mutateAsync(roomId);
+
+      // React Query 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: ["Rooms"] });
+
+      // 회의방에서 나가기
       room?.disconnect();
       onDisconnected();
     } catch (error) {
-      console.error("회의 종료 실패:", error);
+      errorHandler(error);
+    }
+  };
+
+  const handleEndMeeting = async () => {
+    try {
+      // roomId로 reportId 조회
+      const roomInfo = await getRoomInfoFromDB(roomId);
+
+      // reportId가 있으면 삭제 (실패해도 계속 진행)
+      if (roomInfo.reportId) {
+        try {
+          await deleteReportMutation.mutateAsync(roomInfo.reportId);
+        } catch (reportError) {
+          // 회의록 삭제 실패해도 계속 진행
+        }
+      }
+
+      // LiveKit 서버에서 회의방 삭제 (모든 참가자 자동 disconnect)
+      try {
+        await deleteRoomFromLiveKit(roomId);
+        console.log("LiveKit room deleted successfully:", roomId);
+      } catch (livekitError: any) {
+        // 404 에러는 이미 삭제된 경우이므로 무시
+        console.error("LiveKit room deletion failed:", {
+          roomId,
+          status: livekitError?.response?.status,
+          message: livekitError?.response?.data?.message || livekitError?.message,
+          error: livekitError,
+        });
+      }
+
+      // PostgreSQL DB에서 회의방 삭제
+      await deleteRoomMutation.mutateAsync(roomId);
+
+      // React Query 캐시 무효화 - 홈페이지에서 최신 데이터 로드하도록
+      queryClient.invalidateQueries({ queryKey: ["Rooms"] });
+
+      room?.disconnect();
+      onDisconnected();
+    } catch (error) {
+      errorHandler(error);
     }
   };
 
@@ -43,54 +123,66 @@ export const CustomLeaveButton = ({
 
   const handleLeaveClick = () => {
     if (isMaster) {
-      setShowOptions(!showOptions);
+      setModalStep("summary");
     } else {
       handleLeaveMeeting();
     }
   };
 
   return (
-    <div className="relative">
-      {/* 회의 종료 / 회의 나가기 옵션 (master만) */}
-      <AnimatePresence>
-        {showOptions && isMaster && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute right-0 bottom-full mb-4 flex w-48 flex-col gap-2 rounded-[24px] border border-white/20 bg-white/20 p-3 backdrop-blur-2xl shadow-xl shadow-black/10"
-          >
-            <button
-              onClick={handleEndMeeting}
-              className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-red-500/20 to-pink-500/20 px-4 py-3 text-sm font-bold text-red-100 transition-all hover:from-red-500/30 hover:to-pink-500/30 border border-white/10 hover:scale-[1.02]"
-            >
-              회의 종료
-            </button>
-            <button
-              onClick={handleLeaveMeeting}
-              className="flex w-full items-center justify-center rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold text-white transition-all hover:bg-white/20 border border-white/10 hover:scale-[1.02]"
-            >
-              회의 나가기
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <>
+      {/* 요약 모달 */}
+      <ConfirmDialog
+        isOpen={modalStep === "summary"}
+        onOpenChange={(open) => !open && setModalStep(null)}
+        title="회의록 요약"
+        description="회의록을 요약하시겠습니까?"
+        buttons={[
+          {
+            label: "요약",
+            onClick: handleSummary,
+            className:
+              "flex items-center justify-center rounded-full bg-blue-600 px-6 font-bold text-white hover:bg-blue-700",
+          },
+          {
+            label: "회의 나가기",
+            onClick: () => setModalStep("confirm"),
+            variant: "outline",
+            className: "flex items-center justify-center rounded-full px-6 font-bold",
+          },
+        ]}
+      />
+
+      {/* 회의 종료 확인 모달 */}
+      <ConfirmDialog
+        isOpen={modalStep === "confirm"}
+        onOpenChange={(open) => !open && setModalStep(null)}
+        title="회의 종료"
+        description="회의를 종료하시겠습니까?"
+        buttons={[
+          {
+            label: "회의 종료",
+            onClick: handleEndMeeting,
+            className:
+              "flex items-center justify-center rounded-full bg-red-600 px-6 font-bold text-white hover:bg-red-700",
+          },
+          {
+            label: "회의 나가기",
+            onClick: handleLeaveMeeting,
+            variant: "outline",
+            className: "flex items-center justify-center rounded-full px-6 font-bold",
+          },
+        ]}
+      />
 
       {/* 나가기 버튼 */}
       <button
         onClick={handleLeaveClick}
-        className={cn(
-          "flex h-12 items-center justify-center rounded-full px-8 text-sm font-bold text-white shadow-xl transition-all duration-300",
-          "bg-gradient-to-r from-rose-500 via-pink-500 to-red-500 bg-[length:200%_auto] animate-gradient",
-          "hover:shadow-rose-500/40 hover:scale-105 active:scale-95",
-          "border border-white/20 backdrop-blur-sm",
-          isLoading && "opacity-50 cursor-not-allowed"
-        )}
+        className="lk-button !border !border-red-600 font-bold !text-red-600"
         disabled={isLoading}
       >
         Leave
       </button>
-    </div>
+    </>
   );
 };
