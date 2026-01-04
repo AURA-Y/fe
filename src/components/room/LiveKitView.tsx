@@ -9,10 +9,59 @@
 import "@livekit/components-styles";
 import "@livekit/components-styles";
 import { env } from "@/env.mjs";
-import { LiveKitRoom, LayoutContextProvider } from "@livekit/components-react";
-import { roomOptions } from "@/lib/utils/room-options.utils";
-import { RoomContent } from "@/components/livekitview/RoomContent";
-import { AutoMuteOnSilence } from "@/components/livekitview/AutoMuteOnSilence";
+import {
+  LiveKitRoom,
+  RoomAudioRenderer,
+  ControlBar,
+  Chat,
+  LayoutContextProvider,
+  useLayoutContext,
+  useRoomContext,
+} from "@livekit/components-react";
+import { VideoPresets, RoomOptions, RoomEvent, Track } from "livekit-client";
+import { VideoGrid } from "./VideoGrid";
+import { toast } from "sonner";
+import {
+  computeLevel,
+  createAnalyserFromTrack,
+  detectCloseFace,
+  loadFaceDetector,
+  updateNoiseFloor,
+} from "@/lib/utils/automute.utils";
+import { useIsMaster } from "@/hooks/use-room-master";
+import { getRoomInfoFromDB } from "@/lib/api/api.room";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { useUpdateReportSummary, useDeleteReport } from "@/hooks/use-reports";
+import { useDeleteRoomFromDB } from "@/hooks/use-create-meeting";
+import { errorHandler } from "@/lib/utils";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+
+// VP9 최고 화질 설정
+const roomOptions: RoomOptions = {
+  videoCaptureDefaults: {
+    resolution: VideoPresets.h1080.resolution,
+    facingMode: "user",
+    frameRate: 30,
+  },
+  publishDefaults: {
+    videoCodec: "vp9",
+    // 시뮬캐스트 비활성화 - 항상 최고 화질 전송
+    simulcast: false,
+    // VP9 최고 화질 비트레이트 설정 (최대 5Mbps)
+    videoEncoding: {
+      maxBitrate: 5_000_000,
+      maxFramerate: 30,
+      priority: "high",
+    },
+    // VP9 SVC (Scalable Video Coding) - 더 효율적인 고화질
+    scalabilityMode: "L1T3",
+    // 화질 저하 방지
+    degradationPreference: "maintain-resolution",
+  },
+  adaptiveStream: false,
+  dynacast: false,
+};
 
 // 적응형 스트림 비활성화 - 항상 최고 화질 수신
 interface LiveKitViewProps {

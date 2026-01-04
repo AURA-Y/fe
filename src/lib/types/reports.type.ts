@@ -13,6 +13,7 @@ export interface ReportMetadata {
   createdAt: string; // ISO 8601 format
   topic: string;
   attendees: string[];
+  folderId?: string;
 }
 
 // S3에서 가져오는 상세 정보

@@ -14,12 +14,14 @@ import { createRoom, createRoomInDB } from "@/lib/api/api.room";
 import { errorHandler } from "@/lib/utils";
 import { toast } from "sonner";
 import { useUploadReportFiles, useAssignReportToUser } from "@/hooks/use-filed-setting";
+import { useCreateRoomInDB } from "@/hooks/use-create-meeting";
 
 export default function CreateMeetingSecondStepForm() {
   const router = useRouter();
   const { user, accessToken, setAuth } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const uploadMutation = useUploadReportFiles();
+  const createRoomMutation = useCreateRoomInDB();
   const [assignReportId, setAssignReportId] = useState<string | null>(null);
   const assignQuery = useAssignReportToUser(assignReportId || undefined, !!assignReportId);
   const lastAssignedIdRef = useRef<string | null>(null);
@@ -93,12 +95,22 @@ export default function CreateMeetingSecondStepForm() {
 
     setIsSubmitting(true);
     try {
+      const draftReportId = crypto.randomUUID();
+      const now = new Date();
+      const folderId = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}/${String(
+        now.getDate()
+      ).padStart(2, "0")}/${user?.id || "anon"}/${draftReportId}`;
+
       // 1) 파일 업로드 -> S3 메타 획득
       const uploadFileList =
-        formState.files.length > 0 ? await uploadMutation.mutateAsync(formState.files) : [];
+        formState.files.length > 0
+          ? await uploadMutation.mutateAsync({ files: formState.files, folderId, reportId: draftReportId })
+          : [];
 
       // 2) 보고서(목데이터) 생성: DB + S3 JSON
       const details = await createReport({
+        reportId: draftReportId,
+        folderId,
         topic: formState.roomTitle,
         summary: `${formState.description} (자동 생성된 목데이터 요약)`,
         attendees: [formState.user || "참석자"],
@@ -117,27 +129,21 @@ export default function CreateMeetingSecondStepForm() {
       });
 
       // 5) PostgreSQL에 Room 저장 (master 필드에 userId 저장)
-      console.log("Attempting to save room to DB. User:", user);
-      if (user?.id) {
-        console.log("Creating room in DB with userId:", user.id);
-        try {
-          await createRoomInDB({
-            roomId,
-            topic: formState.roomTitle,
-            description: formState.description,
-            master: user.id,
-            attendees: [user.id],
-            maxParticipants: formState.maxParticipants,
-            token,
-            upload_File_list: uploadFileList,
-          });
-          console.log("Room saved to DB successfully");
-        } catch (dbError) {
-          console.error("Failed to save room to DB:", dbError);
-        }
-      } else {
-        console.error("Cannot save room to DB: user.id is missing", user);
+      if (!user?.id) {
+        throw new Error("사용자 정보가 없습니다. 로그인 후 다시 시도해주세요.");
       }
+
+      await createRoomMutation.mutateAsync({
+        roomId,
+        topic: formState.roomTitle,
+        description: formState.description,
+        master: user.id,
+        reportId: details.reportId,
+        attendees: [user.id],
+        maxParticipants: formState.maxParticipants,
+        token,
+        upload_File_list: uploadFileList,
+      });
 
       sessionStorage.setItem(`room_${roomId}_nickname`, formState.user);
       if (token) {

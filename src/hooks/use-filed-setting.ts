@@ -7,7 +7,8 @@ import { uploadReportFiles, assignReportToUser } from "@/lib/api/api.reports";
  */
 export const useUploadReportFiles = () => {
   return useMutation({
-    mutationFn: (files: File[]) => uploadReportFiles(files),
+    mutationFn: (params: { files: File[]; folderId?: string; reportId?: string }) =>
+      uploadReportFiles(params.files, params.folderId, params.reportId),
   });
 };
 

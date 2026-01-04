@@ -1,13 +1,12 @@
 "use client";
 
-
-import { attendRoom, createRoom } from "@/lib/api/api.room";
+import { attendRoom, createRoom, deleteRoomFromDB, joinRoomInDB } from "@/lib/api/api.room";
 import { CreateRoomFormValues, JoinRoomFormValues } from "@/lib/schema/room/roomCreate.schema";
-import { AttendRoomRequest } from "@/lib/types/room.type";
 import { errorHandler } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import axios from "axios";
 
 // 링크를 직접 입력하여, 회의 참여 mutation
 export function useJoinRoom() {
@@ -20,6 +19,10 @@ export function useJoinRoom() {
         roomId: room,
         userName: user,
       });
+
+      // PostgreSQL DB에 참여자 등록 (실패해도 회의 참여는 가능하도록)
+      await joinRoomInDB(room).catch(() => {});
+
       return { room, user, ...response };
     },
     onSuccess: ({ room, user, token }) => {
@@ -32,7 +35,11 @@ export function useJoinRoom() {
       // URL에는 roomId만 포함
       router.push(`/room/${room}`);
     },
-    onError: (error) => {
+    onError: async (error, variables) => {
+      // 410 Gone 에러일 때만 PostgreSQL DB에서도 방 삭제
+      if (axios.isAxiosError(error) && error.response?.status === 410) {
+        await deleteRoomFromDB(variables.room).catch(() => {});
+      }
       errorHandler(error);
     },
   });
