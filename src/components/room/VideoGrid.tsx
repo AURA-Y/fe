@@ -3,6 +3,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { VideoTrack, AudioTrack, useParticipants } from "@livekit/components-react";
 import { Track } from "livekit-client";
+import { cn } from "@/lib/utils";
+
+//화면 전체 레이아웃 (비디오/채팅 배치)
 
 export function VideoGrid() {
   const participants = useParticipants();
@@ -44,10 +47,10 @@ export function VideoGrid() {
   const itemStyle = getItemStyle();
 
   return (
-    <div className="flex flex-1 items-center justify-center overflow-y-auto bg-[#0b0c15] p-4">
+    <div className="flex flex-1 items-center justify-center overflow-y-auto p-4 scrollbar-hide">
       <motion.div
         layout
-        className="flex h-full w-full flex-wrap content-center items-center justify-center gap-4 p-4"
+        className="flex h-full w-full flex-wrap content-center items-center justify-center gap-6 p-4"
       >
         <AnimatePresence mode="popLayout">
           {participants.map((participant) => {
@@ -69,7 +72,12 @@ export function VideoGrid() {
                   opacity: { duration: 0.2 },
                   scale: { duration: 0.2 },
                 }}
-                className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-white/5 bg-[#171821] shadow-2xl transition-colors duration-200 hover:border-white/20"
+                className={cn(
+                  "relative flex flex-col items-center justify-center overflow-hidden shadow-xl transition-all duration-300",
+                  "rounded-[40px] border border-white/20 bg-white/10 backdrop-blur-lg",
+                  "hover:border-cyan-300/40 hover:bg-white/20 hover:shadow-cyan-500/30 hover:shadow-2xl hover:scale-[1.02]",
+                  "group"
+                )}
                 style={{ ...itemStyle, aspectRatio: "16/9" }}
               >
                 {hasVideo && videoPublication?.track ? (
@@ -100,7 +108,7 @@ export function VideoGrid() {
                   />
                 )}
 
-                <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-md bg-black/60 px-2 py-1 text-sm font-medium text-white backdrop-blur-md">
+                <div className="absolute bottom-5 left-5 flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md border border-white/20 shadow-lg transition-all group-hover:bg-white/20 group-hover:pl-5 group-hover:pr-5 group-hover:scale-105">
                   <span className="max-w-[100px] truncate">
                     {participant.identity.startsWith("ai-bot") && <span className="mr-1">🤖</span>}
                     {participant.name || participant.identity}
